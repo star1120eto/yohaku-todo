@@ -1,0 +1,69 @@
+"use client";
+
+import type { Task } from "@/lib/types";
+import { REPEAT_LABELS, formatDue, isOverdue } from "@/lib/format";
+import { PriorityDot, Tag } from "./ui";
+
+export default function TaskItem({
+  task,
+  onToggle,
+  onOpen,
+}: {
+  task: Task;
+  onToggle: (task: Task) => void;
+  onOpen: (task: Task) => void;
+}) {
+  const overdue = !task.completed && task.dueAt && isOverdue(task.dueAt);
+
+  return (
+    <li className="group flex items-start gap-3 px-2 py-3 border-b border-line/70 last:border-b-0 hover:bg-white/60 rounded-lg transition-colors">
+      <button
+        onClick={() => onToggle(task)}
+        aria-label={task.completed ? "未完了に戻す" : "完了にする"}
+        className={`mt-0.5 w-[18px] h-[18px] shrink-0 rounded-full border transition-all ${
+          task.completed
+            ? "bg-accent border-accent"
+            : "border-ink-faint hover:border-accent"
+        }`}
+      >
+        {task.completed && (
+          <svg viewBox="0 0 18 18" fill="none" className="text-white">
+            <path d="M5 9.5l2.5 2.5L13 6.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        )}
+      </button>
+
+      <button
+        onClick={() => onOpen(task)}
+        className="flex-1 min-w-0 text-left cursor-pointer"
+      >
+        <div className="flex items-center gap-2">
+          <PriorityDot priority={task.priority} />
+          <span
+            className={`text-sm truncate ${
+              task.completed ? "text-ink-faint line-through" : ""
+            }`}
+          >
+            {task.title}
+          </span>
+        </div>
+        {(task.dueAt || task.tags.length > 0 || task.repeat || task.location) && (
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] text-ink-faint">
+            {task.dueAt && (
+              <span className={overdue ? "text-danger" : ""}>
+                {formatDue(task.dueAt)}
+              </span>
+            )}
+            {task.repeat && <span>↻ {REPEAT_LABELS[task.repeat]}</span>}
+            {task.location && (
+              <span>📍 {task.location.label || "指定場所"}</span>
+            )}
+            {task.tags.map((t) => (
+              <Tag key={t} name={t} />
+            ))}
+          </div>
+        )}
+      </button>
+    </li>
+  );
+}
