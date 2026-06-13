@@ -5,7 +5,7 @@ import type { CapacitorConfig } from "@capacitor/cli";
 // 本番ではデプロイ先 URL に向けて `npx cap sync` する。
 const config: CapacitorConfig = {
   appId: "me.yohaku.todo",
-  appName: "余白 ToDo",
+  appName: "Yohaku ToDo",
   webDir: "public",
   server: {
     url: process.env.CAP_SERVER_URL || "https://yohaku-todo.example.com",

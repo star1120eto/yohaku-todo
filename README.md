@@ -1,4 +1,4 @@
-# 余白 ToDo
+# Yohaku ToDo
 
 [sizu.me](https://sizu.me/home) のデザインを参考にした、余白を大切にするシンプルで静かな ToDo アプリです。
 

@@ -35,7 +35,7 @@ export default function Notifier({ tasks }: { tasks: Task[] }) {
         const key = `yohaku:notified:${t.id}:${t.dueAt}`;
         if (localStorage.getItem(key)) continue;
         localStorage.setItem(key, "1");
-        notify("余白 ToDo", `「${t.title}」の時間です`);
+        notify("Yohaku ToDo", `「${t.title}」の時間です`);
       }
     };
     check();
@@ -65,7 +65,7 @@ export default function Notifier({ tasks }: { tasks: Task[] }) {
             if (!localStorage.getItem(key)) {
               localStorage.setItem(key, "1");
               notify(
-                "余白 ToDo",
+                "Yohaku ToDo",
                 `「${t.location.label || "指定の場所"}」の近くです: ${t.title}`
               );
             }

@@ -21,6 +21,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          "var(--font-sans)",
           '"Hiragino Kaku Gothic ProN"',
           '"Hiragino Sans"',
           '"Yu Gothic"',
@@ -30,6 +31,7 @@ const config: Config = {
           "sans-serif",
         ],
         serif: [
+          "var(--font-serif)",
           '"Hiragino Mincho ProN"',
           '"Yu Mincho"',
           "Georgia",

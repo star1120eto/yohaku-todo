@@ -131,7 +131,7 @@ export default function App() {
   if (isLoading) {
     return (
       <main className="min-h-dvh flex items-center justify-center">
-        <span className="font-serif tracking-[0.3em] text-ink-faint">余白</span>
+        <span className="font-serif text-lg tracking-tight text-ink-faint">Yohaku ToDo</span>
       </main>
     );
   }
@@ -204,7 +204,7 @@ export default function App() {
             <path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
-        <span className="font-serif tracking-[0.2em]">余白</span>
+        <span className="font-serif text-lg tracking-tight">Yohaku</span>
         <span className="text-xs text-ink-faint truncate">{currentWs?.name}</span>
       </header>
 
@@ -251,9 +251,9 @@ export default function App() {
         )}
 
         {/* メイン */}
-        <main className="flex-1 min-w-0 px-5 sm:px-10 pt-8 lg:pt-14 pb-24">
+        <main className="flex-1 min-w-0 px-5 sm:px-10 pt-6 lg:pt-10 pb-24">
           <div className="max-w-2xl mx-auto">
-            <h2 className="font-serif text-2xl tracking-wider mb-8">
+            <h2 className="font-serif text-2xl tracking-tight mb-6">
               {filterTitle}
             </h2>
 
