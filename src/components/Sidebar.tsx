@@ -96,7 +96,7 @@ export default function Sidebar({
                 active={w.id === currentWorkspaceId}
                 onClick={() => onSelectWorkspace(w.id)}
                 trailing={
-                  w.id === currentWorkspaceId ? (
+                  w.id === currentWorkspaceId && !w.private ? (
                     <button
                       onClick={onShare}
                       title="共有"
@@ -113,7 +113,10 @@ export default function Sidebar({
                 }
               >
                 {w.name}
-                {w.members.length > 1 && (
+                {w.private && (
+                  <span className="ml-1.5 text-[10px] text-ink-faint">🔒</span>
+                )}
+                {!w.private && w.members.length > 1 && (
                   <span className="ml-1.5 text-[10px] text-ink-faint">
                     {w.members.length}人
                   </span>

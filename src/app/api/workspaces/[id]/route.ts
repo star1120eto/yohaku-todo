@@ -35,15 +35,19 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  const ok = updateDb((db) => {
+  const result = updateDb((db) => {
     const ws = db.workspaces.find((w) => w.id === id);
-    if (!ws || ws.ownerId !== user.id) return false;
+    if (!ws || ws.ownerId !== user.id) return "forbidden" as const;
+    if (ws.private) return "private" as const;
     db.workspaces = db.workspaces.filter((w) => w.id !== id);
     db.folders = db.folders.filter((f) => f.workspaceId !== id);
     db.tasks = db.tasks.filter((t) => t.workspaceId !== id);
-    return true;
+    return "ok" as const;
   });
 
-  if (!ok) return jsonError("削除できるのはオーナーのみです", 403);
+  if (result === "private") {
+    return jsonError("プライベートは削除できません", 403);
+  }
+  if (result === "forbidden") return jsonError("削除できるのはオーナーのみです", 403);
   return Response.json({ ok: true });
 }

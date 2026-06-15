@@ -29,9 +29,19 @@ export async function PATCH(req: Request, { params }: Params) {
       t.dueAt = typeof body.dueAt === "string" ? body.dueAt : null;
     }
     if ("repeat" in body) {
-      t.repeat = ["daily", "weekly", "monthly"].includes(body.repeat)
+      t.repeat = ["daily", "weekly", "monthly", "monthly-weekday"].includes(body.repeat)
         ? body.repeat
         : null;
+    }
+    if ("weekday" in body) {
+      t.weekday =
+        typeof body.weekday === "number" && body.weekday >= 0 && body.weekday <= 6
+          ? body.weekday
+          : null;
+    }
+    if ("weekOfMonth" in body) {
+      t.weekOfMonth =
+        typeof body.weekOfMonth === "number" ? body.weekOfMonth : null;
     }
     if ("location" in body) {
       t.location =
@@ -47,7 +57,11 @@ export async function PATCH(req: Request, { params }: Params) {
     if (typeof body.completed === "boolean") {
       if (body.completed && t.repeat && t.dueAt) {
         // 繰り返しタスクは完了せず次の予定日へ進める
-        t.dueAt = nextOccurrence(new Date(t.dueAt), t.repeat).toISOString();
+        t.dueAt = nextOccurrence(new Date(t.dueAt), {
+          repeat: t.repeat,
+          weekday: t.weekday,
+          weekOfMonth: t.weekOfMonth,
+        }).toISOString();
       } else {
         t.completed = body.completed;
         t.completedAt = body.completed ? new Date().toISOString() : null;

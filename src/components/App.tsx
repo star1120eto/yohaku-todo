@@ -171,6 +171,8 @@ export default function App() {
       tags,
       dueAt: parsed.dueAt ? parsed.dueAt.toISOString() : null,
       repeat: parsed.repeat,
+      weekday: parsed.weekday,
+      weekOfMonth: parsed.weekOfMonth,
     });
     mutateTasks();
   };
@@ -253,7 +255,7 @@ export default function App() {
         {/* メイン */}
         <main className="flex-1 min-w-0 px-5 sm:px-10 pt-6 lg:pt-10 pb-24">
           <div className="max-w-2xl mx-auto">
-            <h2 className="font-serif text-2xl tracking-tight mb-6">
+            <h2 className="text-2xl font-normal tracking-tight mb-6">
               {filterTitle}
             </h2>
 

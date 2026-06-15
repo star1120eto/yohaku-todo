@@ -1,7 +1,7 @@
 "use client";
 
 import type { Task } from "@/lib/types";
-import { REPEAT_LABELS, formatDue, isOverdue } from "@/lib/format";
+import { formatDue, formatRepeat, isOverdue } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
 
 export default function TaskItem({
@@ -54,7 +54,7 @@ export default function TaskItem({
                 {formatDue(task.dueAt)}
               </span>
             )}
-            {task.repeat && <span>↻ {REPEAT_LABELS[task.repeat]}</span>}
+            {task.repeat && <span>↻ {formatRepeat(task)}</span>}
             {task.location && (
               <span>📍 {task.location.label || "指定場所"}</span>
             )}

@@ -1,5 +1,6 @@
 import { updateDb } from "@/lib/db";
 import { currentUser, jsonError } from "@/lib/auth";
+import type { Workspace } from "@/lib/types";
 
 // 招待コードでワークスペースに参加する
 export async function POST(req: Request) {
@@ -9,15 +10,22 @@ export async function POST(req: Request) {
   const code = String(body.code ?? "").trim();
   if (!code) return jsonError("招待コードを入力してください", 400);
 
-  const ws = updateDb((db) => {
+  type JoinResult =
+    | { ok: false; error: string; status: number }
+    | { ok: true; workspace: Workspace };
+
+  const result = updateDb<JoinResult>((db) => {
     const w = db.workspaces.find((x) => x.inviteCode === code);
-    if (!w) return null;
+    if (!w) return { ok: false, error: "招待コードが正しくありません", status: 404 };
+    if (w.private) {
+      return { ok: false, error: "このワークスペースは共有できません", status: 403 };
+    }
     if (w.ownerId !== user.id && !w.memberIds.includes(user.id)) {
       w.memberIds.push(user.id);
     }
-    return w;
+    return { ok: true, workspace: w };
   });
 
-  if (!ws) return jsonError("招待コードが正しくありません", 404);
-  return Response.json({ workspace: ws });
+  if (!result.ok) return jsonError(result.error, result.status);
+  return Response.json({ workspace: result.workspace });
 }

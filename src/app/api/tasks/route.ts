@@ -40,9 +40,15 @@ export async function POST(req: Request) {
       priority: [0, 1, 2, 3].includes(body.priority) ? body.priority : 0,
       tags: Array.isArray(body.tags) ? body.tags.map(String) : [],
       dueAt: typeof body.dueAt === "string" ? body.dueAt : null,
-      repeat: ["daily", "weekly", "monthly"].includes(body.repeat)
+      repeat: ["daily", "weekly", "monthly", "monthly-weekday"].includes(body.repeat)
         ? body.repeat
         : null,
+      weekday:
+        typeof body.weekday === "number" && body.weekday >= 0 && body.weekday <= 6
+          ? body.weekday
+          : null,
+      weekOfMonth:
+        typeof body.weekOfMonth === "number" ? body.weekOfMonth : null,
       location:
         body.location && typeof body.location.lat === "number"
           ? {
