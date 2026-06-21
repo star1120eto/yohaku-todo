@@ -69,9 +69,18 @@ export interface ParsePrefixes {
   parseDates: boolean;
 }
 
+export type Theme = "light" | "dark" | "system";
+
+export interface SlackConfig {
+  enabled: boolean;
+  webhookUrl: string;
+}
+
 export interface UserSettings {
   userId: string;
   prefixes: ParsePrefixes;
+  theme: Theme;
+  slack: SlackConfig;
 }
 
 export const DEFAULT_PREFIXES: ParsePrefixes = {
@@ -80,6 +89,15 @@ export const DEFAULT_PREFIXES: ParsePrefixes = {
   folder: "@",
   parseDates: true,
 };
+
+export function defaultSettings(userId: string): UserSettings {
+  return {
+    userId,
+    prefixes: { ...DEFAULT_PREFIXES },
+    theme: "system",
+    slack: { enabled: false, webhookUrl: "" },
+  };
+}
 
 export const PRIORITY_LABELS: Record<Priority, string> = {
   0: "なし",

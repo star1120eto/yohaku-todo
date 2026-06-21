@@ -18,9 +18,26 @@ function notify(title: string, body: string) {
   }
 }
 
-export default function Notifier({ tasks }: { tasks: Task[] }) {
+function sendSlack(text: string) {
+  // サーバーが保存済みWebhookへ送る。失敗は通知体験を妨げないよう握りつぶす。
+  fetch("/api/notify/slack", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  }).catch(() => {});
+}
+
+export default function Notifier({
+  tasks,
+  slackEnabled,
+}: {
+  tasks: Task[];
+  slackEnabled: boolean;
+}) {
   const tasksRef = useRef(tasks);
   tasksRef.current = tasks;
+  const slackRef = useRef(slackEnabled);
+  slackRef.current = slackEnabled;
 
   // 期日になったタスクの通知 (20秒間隔でチェック)
   useEffect(() => {
@@ -36,6 +53,7 @@ export default function Notifier({ tasks }: { tasks: Task[] }) {
         if (localStorage.getItem(key)) continue;
         localStorage.setItem(key, "1");
         notify("Yohaku ToDo", `「${t.title}」の時間です`);
+        if (slackRef.current) sendSlack(`⏰ 「${t.title}」の時間です`);
       }
     };
     check();
@@ -64,10 +82,9 @@ export default function Notifier({ tasks }: { tasks: Task[] }) {
           if (d <= t.location.radius) {
             if (!localStorage.getItem(key)) {
               localStorage.setItem(key, "1");
-              notify(
-                "Yohaku ToDo",
-                `「${t.location.label || "指定の場所"}」の近くです: ${t.title}`
-              );
+              const msg = `「${t.location.label || "指定の場所"}」の近くです: ${t.title}`;
+              notify("Yohaku ToDo", msg);
+              if (slackRef.current) sendSlack(`📍 ${msg}`);
             }
           } else if (d > t.location.radius * 1.5) {
             // 十分離れたらリセットし、次に近づいたとき再通知できるようにする

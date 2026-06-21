@@ -21,7 +21,7 @@ export function Modal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-ink/20 backdrop-blur-[2px] p-0 sm:p-6"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 backdrop-blur-[2px] p-0 sm:p-6"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -61,7 +61,7 @@ export function Field({
 }
 
 export const inputClass =
-  "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-accent/60 transition-colors placeholder:text-ink-faint";
+  "w-full rounded-lg border border-line bg-field text-ink px-3 py-2 text-sm focus:border-accent/60 transition-colors placeholder:text-ink-faint";
 
 export function PrimaryButton({
   children,

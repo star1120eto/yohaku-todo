@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { updateDb, newId, newInviteCode } from "@/lib/db";
 import { UID_COOKIE, publicUser } from "@/lib/auth";
 import { hashPassword, isValidEmail } from "@/lib/password";
-import { DEFAULT_PREFIXES, type User } from "@/lib/types";
+import { defaultSettings, type User } from "@/lib/types";
 
 // メールアドレス + パスワードでアカウントを登録する。
 // 同時に共有不可の個人スペース「プライベート」を初期作成する。
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
       private: true,
       createdAt: now,
     });
-    db.settings.push({ userId: u.id, prefixes: { ...DEFAULT_PREFIXES } });
+    db.settings.push(defaultSettings(u.id));
     return { ok: true, user: u };
   });
 
