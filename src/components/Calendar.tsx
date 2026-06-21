@@ -38,7 +38,7 @@ export default function Calendar({
     setView(new Date(year, month + delta, 1));
 
   return (
-    <div className="rounded-xl border border-line bg-white p-3 select-none">
+    <div className="rounded-xl border border-line bg-field p-3 select-none">
       <div className="flex items-center justify-between px-1 pb-2">
         <button
           type="button"

@@ -2,23 +2,26 @@ import type { Config } from "tailwindcss";
 
 const config: Config = {
   content: ["./src/**/*.{ts,tsx}"],
+  darkMode: "class",
   theme: {
     extend: {
       colors: {
-        paper: "#f5f3f0",
+        // 色は globals.css の CSS 変数で定義し、ダークモードで切り替える
+        paper: "rgb(var(--c-paper) / <alpha-value>)",
         ink: {
-          DEFAULT: "#33312e",
-          soft: "#6b6862",
-          faint: "#a3a097",
+          DEFAULT: "rgb(var(--c-ink) / <alpha-value>)",
+          soft: "rgb(var(--c-ink-soft) / <alpha-value>)",
+          faint: "rgb(var(--c-ink-faint) / <alpha-value>)",
         },
-        line: "#e7e4de",
-        card: "#fdfcfb",
+        line: "rgb(var(--c-line) / <alpha-value>)",
+        card: "rgb(var(--c-card) / <alpha-value>)",
+        field: "rgb(var(--c-field) / <alpha-value>)",
         accent: {
-          DEFAULT: "#5f7a6a",
-          soft: "#eef2ef",
+          DEFAULT: "rgb(var(--c-accent) / <alpha-value>)",
+          soft: "rgb(var(--c-accent-soft) / <alpha-value>)",
         },
-        danger: "#b5654f",
-        satblue: "#4f74a6",
+        danger: "rgb(var(--c-danger) / <alpha-value>)",
+        satblue: "rgb(var(--c-satblue) / <alpha-value>)",
       },
       fontFamily: {
         sans: [

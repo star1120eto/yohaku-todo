@@ -2,6 +2,36 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --c-paper: 245 243 240;
+  --c-ink: 51 49 46;
+  --c-ink-soft: 107 104 98;
+  --c-ink-faint: 163 160 151;
+  --c-line: 231 228 222;
+  --c-card: 253 252 251;
+  --c-field: 255 255 255;
+  --c-accent: 95 122 106;
+  --c-accent-soft: 238 242 239;
+  --c-danger: 181 101 79;
+  --c-satblue: 79 116 166;
+  --c-scroll: 216 212 205;
+}
+
+.dark {
+  --c-paper: 26 25 24;
+  --c-ink: 232 229 224;
+  --c-ink-soft: 176 172 164;
+  --c-ink-faint: 124 121 114;
+  --c-line: 56 53 48;
+  --c-card: 37 35 32;
+  --c-field: 47 44 40;
+  --c-accent: 138 168 151;
+  --c-accent-soft: 42 50 45;
+  --c-danger: 207 122 99;
+  --c-satblue: 127 163 208;
+  --c-scroll: 70 66 60;
+}
+
 html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -12,20 +42,20 @@ body {
 }
 
 ::selection {
-  background: rgba(95, 122, 106, 0.18);
+  background: rgb(var(--c-accent) / 0.22);
 }
 
 /* 細く控えめなスクロールバー */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d8d4cd transparent;
+  scrollbar-color: rgb(var(--c-scroll)) transparent;
 }
 *::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 *::-webkit-scrollbar-thumb {
-  background: #d8d4cd;
+  background: rgb(var(--c-scroll));
   border-radius: 3px;
 }
 *::-webkit-scrollbar-track {
@@ -36,6 +66,11 @@ input,
 textarea,
 select {
   outline: none;
+}
+
+/* ダークモードでの日付/時刻ピッカーのアイコンを反転 */
+.dark input[type="time"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8);
 }
 
 @keyframes fade-up {

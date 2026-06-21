@@ -16,7 +16,7 @@ export default function TaskItem({
   const overdue = !task.completed && task.dueAt && isOverdue(task.dueAt);
 
   return (
-    <li className="group flex items-start gap-3 px-2 py-3 border-b border-line/70 last:border-b-0 hover:bg-white/60 rounded-lg transition-colors">
+    <li className="group flex items-start gap-3 px-2 py-3 border-b border-line/70 last:border-b-0 hover:bg-card/70 rounded-lg transition-colors">
       <button
         onClick={() => onToggle(task)}
         aria-label={task.completed ? "未完了に戻す" : "完了にする"}

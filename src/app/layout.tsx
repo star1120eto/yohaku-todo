@@ -47,8 +47,13 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // 再読み込み時のダークモードのちらつきを防ぐため、描画前にクラスを付与する
+  const themeScript = `(function(){try{var t=localStorage.getItem('yohaku:theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
   return (
     <html lang="ja" className={`${sans.variable} ${serif.variable}`}>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+      </head>
       <body className="font-sans font-light text-[15px] leading-relaxed">
         {children}
       </body>

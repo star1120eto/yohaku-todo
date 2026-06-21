@@ -57,12 +57,12 @@ export default function Composer({
             <span className="text-ink-faint">→</span>
             <span className="text-ink">{parsed.title || "(タイトルなし)"}</span>
             {parsed.dueAt && (
-              <span className="rounded-full bg-white border border-line px-2 py-0.5">
+              <span className="rounded-full bg-field border border-line px-2 py-0.5">
                 {formatDue(parsed.dueAt.toISOString())}
               </span>
             )}
             {parsed.repeat && (
-              <span className="rounded-full bg-white border border-line px-2 py-0.5">
+              <span className="rounded-full bg-field border border-line px-2 py-0.5">
                 {formatRepeat({
                   repeat: parsed.repeat,
                   dueAt: parsed.dueAt,
@@ -72,7 +72,7 @@ export default function Composer({
               </span>
             )}
             {parsed.priority > 0 && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white border border-line px-2 py-0.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-field border border-line px-2 py-0.5">
                 <PriorityDot priority={parsed.priority} />
                 {PRIORITY_LABELS[parsed.priority]}
               </span>
@@ -81,7 +81,7 @@ export default function Composer({
               <Tag key={t} name={t} />
             ))}
             {parsed.folderName && (
-              <span className="rounded-full bg-white border border-line px-2 py-0.5">
+              <span className="rounded-full bg-field border border-line px-2 py-0.5">
                 📁 {parsed.folderName}
               </span>
             )}

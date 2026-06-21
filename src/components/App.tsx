@@ -20,9 +20,11 @@ import TaskDetail from "./TaskDetail";
 import ShareDialog from "./ShareDialog";
 import SettingsDialog from "./SettingsDialog";
 import Notifier from "./Notifier";
+import { applyTheme } from "@/lib/theme";
 import { Field, Modal, PrimaryButton, inputClass } from "./ui";
 
 const WS_KEY = "yohaku:workspace";
+const SIDEBAR_KEY = "yohaku:sidebar";
 
 function startOfToday() {
   const d = new Date();
@@ -48,8 +50,31 @@ export default function App() {
   const [showShare, setShowShare] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showCompleted, setShowCompleted] = useState(false);
-  const [showSidebar, setShowSidebar] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [wsDialog, setWsDialog] = useState<"create" | "join" | null>(null);
+
+  // サイドバーの初期状態: デスクトップは開く(保存値を優先)、モバイルは閉じる
+  useEffect(() => {
+    const saved = localStorage.getItem(SIDEBAR_KEY);
+    if (saved !== null) setSidebarOpen(saved === "1");
+    else setSidebarOpen(window.matchMedia("(min-width: 1024px)").matches);
+  }, []);
+
+  const toggleSidebar = () =>
+    setSidebarOpen((v) => {
+      localStorage.setItem(SIDEBAR_KEY, v ? "0" : "1");
+      return !v;
+    });
+
+  // モバイルではナビ操作後にサイドバーを閉じる(デスクトップは開いたまま)
+  const closeOnMobile = () => {
+    if (!window.matchMedia("(min-width: 1024px)").matches) setSidebarOpen(false);
+  };
+
+  // テーマを設定に従って適用
+  useEffect(() => {
+    if (settings?.theme) applyTheme(settings.theme);
+  }, [settings?.theme]);
 
   // ワークスペース選択の初期化・復元
   useEffect(() => {
@@ -193,68 +218,83 @@ export default function App() {
 
   return (
     <div className="min-h-dvh">
-      <Notifier tasks={tasks} />
+      <Notifier tasks={tasks} slackEnabled={settings?.slack?.enabled ?? false} />
 
-      {/* モバイル用ヘッダー */}
-      <header className="lg:hidden sticky top-0 z-30 flex items-center gap-3 bg-paper/90 backdrop-blur px-4 py-3 border-b border-line/70">
+      {/* メニューを開くボタン(閉じているとき・全サイズ共通) */}
+      {!sidebarOpen && (
         <button
-          onClick={() => setShowSidebar(true)}
-          className="p-1 text-ink-soft"
-          aria-label="メニュー"
+          onClick={toggleSidebar}
+          aria-label="メニューを開く"
+          className="fixed top-3 left-3 z-40 p-2 rounded-lg bg-card/90 border border-line shadow-soft text-ink-soft hover:text-ink backdrop-blur"
         >
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
             <path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
           </svg>
         </button>
-        <span className="font-serif text-lg tracking-tight">Yohaku</span>
-        <span className="text-xs text-ink-faint truncate">{currentWs?.name}</span>
-      </header>
+      )}
 
-      <div className="mx-auto max-w-5xl flex">
-        {/* サイドバー */}
-        <aside
-          className={`fixed inset-y-0 left-0 z-40 w-72 bg-paper overflow-y-auto pt-6 transition-transform lg:translate-x-0 lg:static lg:w-64 lg:shrink-0 lg:pt-10 ${
-            showSidebar ? "translate-x-0 shadow-pop" : "-translate-x-full"
-          }`}
-          onClick={() => setShowSidebar(false)}
+      {/* サイドバー(画面の左端に固定。開閉可能) */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-paper border-r border-line overflow-y-auto pt-6 transition-transform duration-200 ${
+          sidebarOpen ? "translate-x-0 shadow-pop lg:shadow-none" : "-translate-x-full"
+        }`}
+      >
+        <button
+          onClick={toggleSidebar}
+          aria-label="メニューを閉じる"
+          className="absolute top-4 right-3 p-1 text-ink-faint hover:text-ink"
         >
-          <Sidebar
-            workspaces={workspaces}
-            currentWorkspaceId={wsId}
-            onSelectWorkspace={setWsId}
-            onCreateWorkspace={() => setWsDialog("create")}
-            onJoinWorkspace={() => setWsDialog("join")}
-            onShare={() => setShowShare(true)}
-            folders={folders}
-            tags={allTags}
-            filter={filter}
-            onFilter={setFilter}
-            onCreateFolder={async (name) => {
-              await api("/api/folders", "POST", { workspaceId: wsId, name });
-              mutateFolders();
-            }}
-            onDeleteFolder={async (id) => {
-              await api(`/api/folders/${id}`, "DELETE");
-              mutateFolders();
-              mutateTasks();
-              if (filter.type === "folder" && filter.folderId === id) {
-                setFilter({ type: "all" });
-              }
-            }}
-            onOpenSettings={() => setShowSettings(true)}
-            taskCounts={taskCounts}
-          />
-        </aside>
-        {showSidebar && (
-          <div
-            className="fixed inset-0 z-30 bg-ink/20 lg:hidden"
-            onClick={() => setShowSidebar(false)}
-          />
-        )}
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </button>
+        <Sidebar
+          workspaces={workspaces}
+          currentWorkspaceId={wsId}
+          onSelectWorkspace={(id) => {
+            setWsId(id);
+            closeOnMobile();
+          }}
+          onCreateWorkspace={() => setWsDialog("create")}
+          onJoinWorkspace={() => setWsDialog("join")}
+          onShare={() => setShowShare(true)}
+          folders={folders}
+          tags={allTags}
+          filter={filter}
+          onFilter={(f) => {
+            setFilter(f);
+            closeOnMobile();
+          }}
+          onCreateFolder={async (name) => {
+            await api("/api/folders", "POST", { workspaceId: wsId, name });
+            mutateFolders();
+          }}
+          onDeleteFolder={async (id) => {
+            await api(`/api/folders/${id}`, "DELETE");
+            mutateFolders();
+            mutateTasks();
+            if (filter.type === "folder" && filter.folderId === id) {
+              setFilter({ type: "all" });
+            }
+          }}
+          onOpenSettings={() => setShowSettings(true)}
+          taskCounts={taskCounts}
+        />
+      </aside>
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/30 lg:hidden"
+          onClick={toggleSidebar}
+        />
+      )}
 
-        {/* メイン */}
-        <main className="flex-1 min-w-0 px-5 sm:px-10 pt-6 lg:pt-10 pb-24">
-          <div className="max-w-2xl mx-auto">
+      {/* メイン */}
+      <main
+        className={`min-w-0 px-5 sm:px-10 pt-16 lg:pt-10 pb-24 transition-[padding] duration-200 ${
+          sidebarOpen ? "lg:pl-72" : "lg:pl-0"
+        }`}
+      >
+        <div className="max-w-2xl mx-auto">
             <h2 className="text-2xl font-normal tracking-tight mb-6">
               {filterTitle}
             </h2>
@@ -306,7 +346,6 @@ export default function App() {
             )}
           </div>
         </main>
-      </div>
 
       {/* ダイアログ群 */}
       {openTask && (
@@ -335,9 +374,9 @@ export default function App() {
           onClose={() => setShowShare(false)}
         />
       )}
-      {showSettings && (
+      {showSettings && settings && (
         <SettingsDialog
-          prefixes={prefixes}
+          settings={settings}
           userName={user.name}
           onSaved={() => mutateSettings()}
           onLogout={async () => {

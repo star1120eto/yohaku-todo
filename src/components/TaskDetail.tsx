@@ -3,8 +3,15 @@
 import { useState } from "react";
 import type { Folder, Task, TaskLocation } from "@/lib/types";
 import { WEEKDAY_JP, formatRepeat } from "@/lib/format";
+import { api } from "@/hooks/useData";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
 import Calendar from "./Calendar";
+
+interface GeoResult {
+  label: string;
+  lat: number;
+  lng: number;
+}
 
 const pad = (n: number) => String(n).padStart(2, "0");
 
@@ -44,7 +51,32 @@ export default function TaskDetail({
   const [locRadius, setLocRadius] = useState(task.location?.radius ?? 300);
   const [geoBusy, setGeoBusy] = useState(false);
   const [geoError, setGeoError] = useState("");
+  const [addr, setAddr] = useState("");
+  const [addrResults, setAddrResults] = useState<GeoResult[]>([]);
+  const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  const setCoords = (lat: number, lng: number, label = locLabel) =>
+    setLocation({ label, lat, lng, radius: locRadius });
+
+  const searchAddress = async () => {
+    if (!addr.trim() || searching) return;
+    setSearching(true);
+    setGeoError("");
+    setAddrResults([]);
+    try {
+      const { results } = (await api(
+        `/api/geocode?q=${encodeURIComponent(addr.trim())}`,
+        "GET"
+      )) as { results: GeoResult[] };
+      if (!results.length) setGeoError("該当する場所が見つかりませんでした");
+      setAddrResults(results);
+    } catch (err) {
+      setGeoError(err instanceof Error ? err.message : "検索に失敗しました");
+    } finally {
+      setSearching(false);
+    }
+  };
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -244,45 +276,138 @@ export default function TaskDetail({
             </button>
           )}
         </div>
-        {location ? (
-          <div className="space-y-3">
+        <div className="space-y-3">
+          <input
+            className={inputClass}
+            value={locLabel}
+            onChange={(e) => {
+              setLocLabel(e.target.value);
+              if (location) setLocation({ ...location, label: e.target.value });
+            }}
+            placeholder="場所の名前（例: スーパー）"
+          />
+
+          {/* 住所・場所名で検索 */}
+          <div className="flex gap-2">
             <input
               className={inputClass}
-              value={locLabel}
-              onChange={(e) => setLocLabel(e.target.value)}
-              placeholder="場所の名前（例: スーパー）"
+              value={addr}
+              onChange={(e) => setAddr(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  searchAddress();
+                }
+              }}
+              placeholder="住所や場所名で検索（例: 東京駅）"
             />
-            <div className="flex items-center gap-3 text-xs text-ink-soft">
-              <span>
-                {location.lat.toFixed(5)}, {location.lng.toFixed(5)}
-              </span>
-              <label className="flex items-center gap-1.5 ml-auto">
-                半径
-                <input
-                  type="number"
-                  min={50}
-                  step={50}
-                  className="w-20 rounded-lg border border-line bg-white px-2 py-1"
-                  value={locRadius}
-                  onChange={(e) => setLocRadius(Number(e.target.value) || 300)}
-                />
-                m
-              </label>
-            </div>
+            <button
+              type="button"
+              onClick={searchAddress}
+              disabled={searching || !addr.trim()}
+              className="shrink-0 rounded-lg border border-line px-3 text-sm text-ink-soft hover:text-ink disabled:opacity-40"
+            >
+              {searching ? "検索中…" : "検索"}
+            </button>
           </div>
-        ) : (
-          <button
-            type="button"
-            onClick={useCurrentLocation}
-            disabled={geoBusy}
-            className="text-sm text-accent hover:underline disabled:opacity-50"
-          >
-            {geoBusy ? "取得中…" : "📍 現在地をこのタスクの場所にする"}
-          </button>
-        )}
+          {addrResults.length > 0 && (
+            <ul className="rounded-lg border border-line divide-y divide-line/70 overflow-hidden">
+              {addrResults.map((r, i) => (
+                <li key={i}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCoords(r.lat, r.lng, r.label);
+                      setLocLabel(r.label);
+                      setAddrResults([]);
+                    }}
+                    className="w-full text-left px-3 py-2 text-xs hover:bg-card/70"
+                  >
+                    {r.label}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          {/* 現在地・手入力 */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            <button
+              type="button"
+              onClick={useCurrentLocation}
+              disabled={geoBusy}
+              className="text-accent hover:underline disabled:opacity-50"
+            >
+              {geoBusy ? "取得中…" : "📍 現在地を使う"}
+            </button>
+            {!location && (
+              <button
+                type="button"
+                onClick={() => setCoords(35.681236, 139.767125)}
+                className="text-accent hover:underline"
+              >
+                ✎ 緯度・経度を手入力
+              </button>
+            )}
+          </div>
+
+          {/* 座標(編集可) + 半径 + 地図リンク */}
+          {location && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 text-xs text-ink-soft">
+                <label className="flex items-center gap-1">
+                  緯度
+                  <input
+                    type="number"
+                    step="0.000001"
+                    className="w-28 rounded-lg border border-line bg-field px-2 py-1"
+                    value={location.lat}
+                    onChange={(e) => setCoords(Number(e.target.value), location.lng)}
+                  />
+                </label>
+                <label className="flex items-center gap-1">
+                  経度
+                  <input
+                    type="number"
+                    step="0.000001"
+                    className="w-28 rounded-lg border border-line bg-field px-2 py-1"
+                    value={location.lng}
+                    onChange={(e) => setCoords(location.lat, Number(e.target.value))}
+                  />
+                </label>
+              </div>
+              <div className="flex items-center gap-3 text-xs text-ink-soft">
+                <label className="flex items-center gap-1.5">
+                  半径
+                  <input
+                    type="number"
+                    min={50}
+                    step={50}
+                    className="w-20 rounded-lg border border-line bg-field px-2 py-1"
+                    value={locRadius}
+                    onChange={(e) => {
+                      const r = Number(e.target.value) || 300;
+                      setLocRadius(r);
+                      setLocation({ ...location, radius: r });
+                    }}
+                  />
+                  m
+                </label>
+                <a
+                  href={`https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lng}#map=16/${location.lat}/${location.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="ml-auto text-accent hover:underline"
+                >
+                  地図で開く ↗
+                </a>
+              </div>
+            </div>
+          )}
+        </div>
         {geoError && <p className="text-xs text-danger mt-2">{geoError}</p>}
         <p className="text-[11px] text-ink-faint mt-2 leading-5">
-          アプリを開いている間、登録した場所に近づくと通知します。
+          現在地・住所検索・緯度経度の手入力で場所を登録できます。アプリを開いている間、近づくと通知します。
         </p>
       </div>
 

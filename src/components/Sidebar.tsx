@@ -24,7 +24,7 @@ function NavButton({
   return (
     <div
       className={`group flex items-center rounded-lg transition-colors ${
-        active ? "bg-white shadow-soft" : "hover:bg-white/50"
+        active ? "bg-card shadow-soft" : "hover:bg-card/60"
       }`}
     >
       <button
@@ -186,7 +186,7 @@ export default function Sidebar({
               >
                 <input
                   autoFocus
-                  className="w-full rounded-lg border border-line bg-white px-2.5 py-1.5 text-sm"
+                  className="w-full rounded-lg border border-line bg-field px-2.5 py-1.5 text-sm"
                   placeholder="フォルダ名"
                   value={newFolder}
                   onChange={(e) => setNewFolder(e.target.value)}
