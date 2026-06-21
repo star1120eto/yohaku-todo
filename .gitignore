@@ -17,6 +17,12 @@ npm-debug.log*
 # local database
 /data/
 
+# test artifacts
+/.e2e-data/
+/test-results/
+/playwright-report/
+/coverage/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
