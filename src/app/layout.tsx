@@ -1,9 +1,10 @@
 import type { Metadata, Viewport } from "next";
-import { Zen_Kaku_Gothic_New, Zen_Old_Mincho } from "next/font/google";
+import { Noto_Sans_JP, Zen_Old_Mincho } from "next/font/google";
 import "./globals.css";
 
-// 本文: 端正で読みやすいゴシック。見出し/ロゴ: 落ち着いた明朝。
-const sans = Zen_Kaku_Gothic_New({
+// 本文: 源ノ角ゴシック JP(= Noto Sans JP)。既定は Light(300)。
+// ロゴの欧文ワードマークのみ落ち着いた明朝を使用。
+const sans = Noto_Sans_JP({
   weight: ["300", "400", "500", "700"],
   subsets: ["latin"],
   display: "swap",
@@ -48,7 +49,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ja" className={`${sans.variable} ${serif.variable}`}>
-      <body className="font-sans text-[15px] leading-relaxed">{children}</body>
+      <body className="font-sans font-light text-[15px] leading-relaxed">
+        {children}
+      </body>
     </html>
   );
 }

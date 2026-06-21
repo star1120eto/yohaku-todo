@@ -93,7 +93,7 @@ export default function ShareDialog({
             このワークスペースから退出
           </button>
         )}
-        {isOwner && workspace.name !== "個人" && (
+        {isOwner && !workspace.private && (
           <button
             className="text-sm text-danger hover:underline mr-auto"
             onClick={async () => {

@@ -1,10 +1,18 @@
 export type Priority = 0 | 1 | 2 | 3; // 0: なし, 1: 低, 2: 中, 3: 高
 
-export type Repeat = "daily" | "weekly" | "monthly" | null;
+// monthly-weekday: 毎月第N◯曜(例: 毎月第一金曜)
+export type Repeat =
+  | "daily"
+  | "weekly"
+  | "monthly"
+  | "monthly-weekday"
+  | null;
 
 export interface User {
   id: string;
   name: string;
+  email: string | null;
+  passwordHash: string | null; // "salt:hash"(メール登録ユーザーのみ)
   createdAt: string;
 }
 
@@ -14,6 +22,7 @@ export interface Workspace {
   ownerId: string;
   memberIds: string[];
   inviteCode: string;
+  private: boolean; // true なら共有不可の個人スペース
   createdAt: string;
 }
 
@@ -44,6 +53,8 @@ export interface Task {
   tags: string[];
   dueAt: string | null; // ISO datetime for due / notification
   repeat: Repeat;
+  weekday: number | null; // 0=日〜6=土。monthly-weekday で使用
+  weekOfMonth: number | null; // 1〜5、-1=最終。monthly-weekday で使用
   location: TaskLocation | null;
   createdBy: string;
   createdAt: string;

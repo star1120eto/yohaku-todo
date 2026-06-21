@@ -18,6 +18,7 @@ const config: Config = {
           soft: "#eef2ef",
         },
         danger: "#b5654f",
+        satblue: "#4f74a6",
       },
       fontFamily: {
         sans: [

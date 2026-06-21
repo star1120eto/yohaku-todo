@@ -1,10 +1,35 @@
 import type { Repeat } from "./types";
 
-export const REPEAT_LABELS: Record<Exclude<Repeat, null>, string> = {
-  daily: "毎日",
-  weekly: "毎週",
-  monthly: "毎月",
-};
+export const WEEKDAY_JP = ["日", "月", "火", "水", "木", "金", "土"];
+
+/** 曜日列の色クラス(日曜=赤 / 土曜=青)。 */
+export function weekdayColor(dow: number): string {
+  if (dow === 0) return "text-danger";
+  if (dow === 6) return "text-satblue";
+  return "";
+}
+
+interface RepeatInfo {
+  repeat: Repeat;
+  dueAt?: string | Date | null;
+  weekday?: number | null;
+  weekOfMonth?: number | null;
+}
+
+/** 繰り返し設定を「毎週 土曜」「毎月 第1金曜」のような表示にする。 */
+export function formatRepeat(t: RepeatInfo): string {
+  if (!t.repeat) return "";
+  if (t.repeat === "daily") return "毎日";
+  if (t.repeat === "weekly") {
+    const dow = t.dueAt != null ? new Date(t.dueAt).getDay() : null;
+    return dow != null ? `毎週 ${WEEKDAY_JP[dow]}曜` : "毎週";
+  }
+  if (t.repeat === "monthly") return "毎月";
+  // monthly-weekday
+  const nth = t.weekOfMonth === -1 ? "最終" : `第${t.weekOfMonth}`;
+  const wd = t.weekday != null ? `${WEEKDAY_JP[t.weekday]}曜` : "";
+  return `毎月 ${nth}${wd}`;
+}
 
 export function formatDue(iso: string, now: Date = new Date()): string {
   const d = new Date(iso);
@@ -19,9 +44,10 @@ export function formatDue(iso: string, now: Date = new Date()): string {
   if (diffDays === 1) return `明日 ${time}`;
   if (diffDays === -1) return `昨日 ${time}`;
   const sameYear = d.getFullYear() === now.getFullYear();
+  const dow = WEEKDAY_JP[d.getDay()];
   const date = sameYear
-    ? `${d.getMonth() + 1}/${d.getDate()}`
-    : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+    ? `${d.getMonth() + 1}/${d.getDate()}(${dow})`
+    : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}(${dow})`;
   return `${date} ${time}`;
 }
 

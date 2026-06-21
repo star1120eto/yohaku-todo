@@ -31,6 +31,7 @@ export async function POST(req: Request) {
       ownerId: user.id,
       memberIds: [],
       inviteCode: newInviteCode(),
+      private: false,
       createdAt: new Date().toISOString(),
     };
     db.workspaces.push(w);

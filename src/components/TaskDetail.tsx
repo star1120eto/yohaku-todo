@@ -2,8 +2,15 @@
 
 import { useState } from "react";
 import type { Folder, Task, TaskLocation } from "@/lib/types";
-import { toLocalInputValue } from "@/lib/format";
+import { WEEKDAY_JP, formatRepeat } from "@/lib/format";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
+import Calendar from "./Calendar";
+
+const pad = (n: number) => String(n).padStart(2, "0");
+
+function daysInMonth(d: Date) {
+  return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+}
 
 export default function TaskDetail({
   task,
@@ -18,13 +25,20 @@ export default function TaskDetail({
   onDelete: () => Promise<void>;
   onClose: () => void;
 }) {
+  const initDue = task.dueAt ? new Date(task.dueAt) : null;
   const [title, setTitle] = useState(task.title);
   const [note, setNote] = useState(task.note);
   const [priority, setPriority] = useState(task.priority);
   const [tags, setTags] = useState(task.tags.join(", "));
   const [folderId, setFolderId] = useState(task.folderId ?? "");
-  const [dueAt, setDueAt] = useState(task.dueAt ? toLocalInputValue(task.dueAt) : "");
-  const [repeat, setRepeat] = useState(task.repeat ?? "");
+  const [dueDate, setDueDate] = useState<Date | null>(
+    initDue ? new Date(initDue.getFullYear(), initDue.getMonth(), initDue.getDate()) : null
+  );
+  const [dueTime, setDueTime] = useState(
+    initDue ? `${pad(initDue.getHours())}:${pad(initDue.getMinutes())}` : "09:00"
+  );
+  const [showCal, setShowCal] = useState(false);
+  const [repeat, setRepeat] = useState<string>(task.repeat ?? "");
   const [location, setLocation] = useState<TaskLocation | null>(task.location);
   const [locLabel, setLocLabel] = useState(task.location?.label ?? "");
   const [locRadius, setLocRadius] = useState(task.location?.radius ?? 300);
@@ -59,6 +73,24 @@ export default function TaskDetail({
   const save = async () => {
     setBusy(true);
     try {
+      let dueAt: string | null = null;
+      if (dueDate) {
+        const [h, m] = dueTime.split(":").map(Number);
+        const d = new Date(dueDate);
+        d.setHours(h || 0, m || 0, 0, 0);
+        dueAt = d.toISOString();
+      }
+
+      let weekday: number | null = null;
+      let weekOfMonth: number | null = null;
+      if (repeat === "monthly-weekday" && dueDate) {
+        weekday = dueDate.getDay();
+        const dom = dueDate.getDate();
+        const isLast = dom + 7 > daysInMonth(dueDate);
+        weekOfMonth =
+          task.weekOfMonth === -1 && isLast ? -1 : Math.ceil(dom / 7);
+      }
+
       await onSave({
         title: title.trim() || task.title,
         note,
@@ -68,8 +100,10 @@ export default function TaskDetail({
           .map((t) => t.trim())
           .filter(Boolean),
         folderId: folderId || null,
-        dueAt: dueAt ? new Date(dueAt).toISOString() : null,
+        dueAt,
         repeat: (repeat || null) as Task["repeat"],
+        weekday,
+        weekOfMonth,
         location: location
           ? { ...location, label: locLabel, radius: locRadius }
           : null,
@@ -79,6 +113,12 @@ export default function TaskDetail({
       setBusy(false);
     }
   };
+
+  const dueLabel = dueDate
+    ? `${dueDate.getFullYear()}/${dueDate.getMonth() + 1}/${dueDate.getDate()}(${
+        WEEKDAY_JP[dueDate.getDay()]
+      })`
+    : "未設定";
 
   return (
     <Modal title="タスクの詳細" onClose={onClose}>
@@ -95,30 +135,65 @@ export default function TaskDetail({
         />
       </Field>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Field label="期日・通知日時">
+      <div className="mb-4">
+        <span className="block text-xs text-ink-soft mb-1.5">期日・通知日時</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowCal((v) => !v)}
+            className={`${inputClass} text-left flex-1`}
+          >
+            {dueLabel}
+          </button>
           <input
-            type="datetime-local"
-            className={inputClass}
-            value={dueAt}
-            onChange={(e) => setDueAt(e.target.value)}
+            type="time"
+            className={`${inputClass} w-28`}
+            value={dueTime}
+            onChange={(e) => setDueTime(e.target.value)}
+            disabled={!dueDate}
           />
-        </Field>
+          {dueDate && (
+            <button
+              type="button"
+              onClick={() => {
+                setDueDate(null);
+                setShowCal(false);
+              }}
+              className="text-xs text-danger hover:underline shrink-0"
+            >
+              クリア
+            </button>
+          )}
+        </div>
+        {showCal && (
+          <div className="mt-2 animate-fade-up">
+            <Calendar
+              value={dueDate}
+              onSelect={(d) => {
+                setDueDate(d);
+                setShowCal(false);
+              }}
+            />
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
         <Field label="繰り返し">
           <select
             className={inputClass}
             value={repeat}
-            onChange={(e) => setRepeat(e.target.value as typeof repeat)}
+            onChange={(e) => setRepeat(e.target.value)}
           >
             <option value="">なし</option>
             <option value="daily">毎日</option>
             <option value="weekly">毎週</option>
             <option value="monthly">毎月</option>
+            {task.repeat === "monthly-weekday" && (
+              <option value="monthly-weekday">{formatRepeat(task)}</option>
+            )}
           </select>
         </Field>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <Field label="優先度">
           <select
             className={inputClass}
@@ -131,21 +206,22 @@ export default function TaskDetail({
             <option value={3}>高</option>
           </select>
         </Field>
-        <Field label="フォルダ">
-          <select
-            className={inputClass}
-            value={folderId}
-            onChange={(e) => setFolderId(e.target.value)}
-          >
-            <option value="">なし</option>
-            {folders.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.name}
-              </option>
-            ))}
-          </select>
-        </Field>
       </div>
+
+      <Field label="フォルダ">
+        <select
+          className={inputClass}
+          value={folderId}
+          onChange={(e) => setFolderId(e.target.value)}
+        >
+          <option value="">なし</option>
+          {folders.map((f) => (
+            <option key={f.id} value={f.id}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+      </Field>
 
       <Field label="タグ（カンマ区切り）">
         <input

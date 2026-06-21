@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { parseTitle } from "@/lib/parse";
 import { DEFAULT_PREFIXES, PRIORITY_LABELS, type ParsePrefixes } from "@/lib/types";
-import { REPEAT_LABELS, formatDue } from "@/lib/format";
+import { formatDue, formatRepeat } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
 
 export default function Composer({
@@ -63,7 +63,12 @@ export default function Composer({
             )}
             {parsed.repeat && (
               <span className="rounded-full bg-white border border-line px-2 py-0.5">
-                {REPEAT_LABELS[parsed.repeat]}
+                {formatRepeat({
+                  repeat: parsed.repeat,
+                  dueAt: parsed.dueAt,
+                  weekday: parsed.weekday,
+                  weekOfMonth: parsed.weekOfMonth,
+                })}
               </span>
             )}
             {parsed.priority > 0 && (
