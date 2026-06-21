@@ -50,7 +50,11 @@ export default function RootLayout({
   // 再読み込み時のダークモードのちらつきを防ぐため、描画前にクラスを付与する
   const themeScript = `(function(){try{var t=localStorage.getItem('yohaku:theme')||'system';var d=t==='dark'||(t==='system'&&window.matchMedia('(prefers-color-scheme: dark)').matches);if(d)document.documentElement.classList.add('dark');}catch(e){}})();`;
   return (
-    <html lang="ja" className={`${sans.variable} ${serif.variable}`}>
+    <html
+      lang="ja"
+      className={`${sans.variable} ${serif.variable}`}
+      suppressHydrationWarning
+    >
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
