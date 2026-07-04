@@ -68,6 +68,22 @@ http://localhost:3000 を開きます。データはローカルの Cloudflare D
 - 設定画面の「ブラウザ通知を許可する」を押して通知を許可してください
 - 期日通知・場所通知はアプリ(タブ)を開いている間に動作します(v1)
 
+### Googleカレンダー連携(任意)
+
+期日のあるタスクの作成・変更・完了・削除を、接続したGoogleカレンダーへ自動反映できます。
+利用するには [Google Cloud Console](https://console.cloud.google.com/) でOAuthクライアントを作成し、
+以下の環境変数を設定してください(未設定の場合、設定画面に連携メニューは表示されず機能は無効のままです)。
+
+```bash
+GOOGLE_CLIENT_ID=xxxx.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=xxxx
+GOOGLE_REDIRECT_URI=https://your-deploy-url/api/integrations/google/callback
+GCAL_TOKEN_SECRET=十分にランダムな文字列(トークン暗号化用。本番では必須)
+```
+
+OAuth同意画面のリダイレクトURIには `GOOGLE_REDIRECT_URI` と同じ値を登録し、
+スコープに `calendar.events` を許可してください。
+
 ## テスト
 
 単体テスト(Vitest)と E2E テスト(Playwright)を用意しています。
