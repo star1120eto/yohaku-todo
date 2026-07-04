@@ -8,7 +8,7 @@ export async function currentUser(): Promise<User | null> {
   const store = await cookies();
   const uid = store.get(UID_COOKIE)?.value;
   if (!uid) return null;
-  const db = readDb();
+  const db = await readDb();
   return db.users.find((u) => u.id === uid) ?? null;
 }
 

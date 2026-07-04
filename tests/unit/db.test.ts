@@ -1,31 +1,34 @@
-import { describe, it, expect, beforeAll, beforeEach, afterAll } from "vitest";
-import fs from "fs";
-import os from "os";
-import path from "path";
+import { describe, it, expect, beforeEach } from "vitest";
+import type { D1Database, D1ExecResult, D1Result } from "@cloudflare/workers-types";
+import * as db from "@/lib/db";
 
-// 古典学派の方針に従い、ファイルシステムをモックせず本物の一時ディレクトリを使う。
-// db.ts はモジュール読込時に DATA_DIR を確定するため、env を設定してから動的 import する。
-let dataDir: string;
-let db: typeof import("@/lib/db");
-
-beforeAll(async () => {
-  dataDir = fs.mkdtempSync(path.join(os.tmpdir(), "yohaku-db-"));
-  process.env.YOHAKU_DATA_DIR = dataDir;
-  db = await import("@/lib/db");
-});
+// D1 は vitest(Node)上では利用できないため、実際に使う SQL 呼び出し形の
+// 部分だけを満たす軽量な代替 D1(単一行の JSON ブロブを保持するだけ)を注入する。
+// fs をモックしていた頃と同様、テスト対象自身のロジックはモックしない。
+function createFakeD1(): D1Database {
+  let stored: string | null = null;
+  const statement = {
+    bind: (json: string) => ({
+      run: async () => {
+        stored = json;
+        return {} as D1Result;
+      },
+    }),
+    first: async <T>() => (stored === null ? null : ({ data: stored } as unknown as T)),
+  };
+  return {
+    prepare: () => statement,
+    exec: async () => ({}) as D1ExecResult,
+  } as unknown as D1Database;
+}
 
 beforeEach(() => {
-  // 各テストを独立させるため DB ファイルを消す(空状態に戻す)
-  fs.rmSync(path.join(dataDir, "db.json"), { force: true });
-});
-
-afterAll(() => {
-  fs.rmSync(dataDir, { recursive: true, force: true });
+  db.__setD1ForTesting(createFakeD1());
 });
 
 describe("readDb", () => {
-  it("ファイルが無ければ空のデータベースを返す", () => {
-    const data = db.readDb();
+  it("データが無ければ空のデータベースを返す", async () => {
+    const data = await db.readDb();
     expect(data).toEqual({
       users: [],
       workspaces: [],
@@ -37,8 +40,8 @@ describe("readDb", () => {
 });
 
 describe("updateDb", () => {
-  it("変更を実ファイルへ永続化し、次の readDb に反映される", () => {
-    db.updateDb((d) => {
+  it("変更を永続化し、次の readDb に反映される", async () => {
+    await db.updateDb((d) => {
       d.users.push({
         id: "u1",
         name: "テスト",
@@ -48,20 +51,14 @@ describe("updateDb", () => {
       });
     });
 
-    // 同一プロセス内の別呼び出しでも、ファイルから読み直せること
-    const reloaded = db.readDb();
+    const reloaded = await db.readDb();
     expect(reloaded.users).toHaveLength(1);
     expect(reloaded.users[0].name).toBe("テスト");
-
-    // 実際にファイルが書かれていること
-    const raw = JSON.parse(
-      fs.readFileSync(path.join(dataDir, "db.json"), "utf8")
-    );
-    expect(raw.users[0].email).toBe("t@example.com");
+    expect(reloaded.users[0].email).toBe("t@example.com");
   });
 
-  it("コールバックの戻り値をそのまま返す", () => {
-    const count = db.updateDb((d) => {
+  it("コールバックの戻り値をそのまま返す", async () => {
+    const count = await db.updateDb((d) => {
       d.folders.push({
         id: "f1",
         workspaceId: "w1",

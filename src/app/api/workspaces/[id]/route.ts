@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  const result = updateDb((db) => {
+  const result = await updateDb((db) => {
     const ws = db.workspaces.find((w) => w.id === id);
     if (!ws || !isMember(ws, user.id)) return null;
     if (typeof body.name === "string" && body.name.trim()) {
@@ -35,7 +35,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  const result = updateDb((db) => {
+  const result = await updateDb((db) => {
     const ws = db.workspaces.find((w) => w.id === id);
     if (!ws || ws.ownerId !== user.id) return "forbidden" as const;
     if (ws.private) return "private" as const;

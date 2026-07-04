@@ -54,7 +54,7 @@ npm install
 npm run dev
 ```
 
-http://localhost:3000 を開きます。データは `data/db.json`(JSON ファイル)に保存されます。
+http://localhost:3000 を開きます。データはローカルの Cloudflare D1(`.wrangler/` 以下)に保存されます。
 外部サービスへの依存はありません。
 
 ### 共有を試す
@@ -103,6 +103,45 @@ PORT=3100 npm run test:e2e
 
 > サーバーの起動・停止は Playwright が自動で行います。`CI=1` を付けると HTML レポートを `playwright-report/` に出力します。
 
+## Cloudflare へのデプロイ(無料枠)
+
+[OpenNext for Cloudflare](https://opennext.js.org/cloudflare) を使って Cloudflare Workers 上にデプロイします。
+データは Cloudflare D1(無料枠 5GB の SQLite)に保存されるため、外部の DB サービスは不要です。
+
+### 初回セットアップ
+
+```bash
+# Cloudflare にログイン
+npx wrangler login
+
+# D1 データベースを作成し、出力された database_id を wrangler.jsonc の
+# d1_databases[0].database_id に設定する
+npx wrangler d1 create yohaku-todo-db
+```
+
+テーブルはアプリが初回アクセス時に自動で作成するため、手動でのマイグレーション実行は不要です
+(`schema.sql` は参考用。手動で適用したい場合は `npm run cf:d1:migrate:remote` / `cf:d1:migrate:local`)。
+
+### デプロイ
+
+```bash
+npm run cf:deploy
+```
+
+### ローカルで Cloudflare 環境を再現して確認
+
+```bash
+npm run cf:preview   # ビルドして wrangler でプレビュー起動
+```
+
+型定義(`worker-configuration.d.ts`)が必要な場合は `npm run cf:typegen` で生成できます
+(Next.js の DOM 型と衝突するため、生成物はコミットせず `.gitignore` 済みです)。
+
+> v1 は実装の単純さを優先し、アプリの全データを D1 の 1 行に JSON として保存しています
+> (旧・JSON ファイルストアの D1 への素直な移行)。同時書き込みは最後に保存した内容で
+> 上書きされるため、アクセスが増えてきたら `users` / `workspaces` / `tasks` 等のテーブルに
+> 正規化することを推奨します。
+
 ## iOS / Android アプリ (Capacitor)
 
 Web アプリをネイティブシェルで包む構成です。デプロイ済みの URL を `CAP_SERVER_URL` に指定して同期します。
@@ -122,6 +161,7 @@ npx cap open android  # Android Studio
 
 - **Next.js (App Router) + TypeScript + Tailwind CSS**
 - API は Next.js Route Handlers (`src/app/api/*`)
-- データ層は `src/lib/db.ts` の JSON ファイルストアに閉じ込めてあり、将来 PostgreSQL 等へ差し替え可能
-- 認証はメールアドレス + パスワード(scrypt でハッシュ化、Cookie セッション)
+- データ層は `src/lib/db.ts` に閉じ込めてあり、Cloudflare D1(SQLite)に JSON ブロブとして保存する。将来テーブルへの正規化や他 DB への差し替えも可能
+- 認証はメールアドレス + パスワード(Web Crypto の PBKDF2 でハッシュ化、Cookie セッション)
+- Cloudflare Workers 上での実行は [OpenNext for Cloudflare](https://opennext.js.org/cloudflare)(`open-next.config.ts` / `wrangler.jsonc`)を使用
 - タイトル解析は `src/lib/parse.ts`(クライアントでプレビュー、保存時に構造化)

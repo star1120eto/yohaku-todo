@@ -1,14 +1,11 @@
-import fs from "fs";
-import path from "path";
-import crypto from "crypto";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+import type { D1Database } from "@cloudflare/workers-types";
 import type { Database } from "./types";
 
-// シンプルな JSON ファイルベースのデータストア。
-// 外部サービスなしで動作させるための v1 実装で、
-// 将来 PostgreSQL 等へ置き換えられるようこのモジュールに I/O を閉じ込めている。
-
-const DATA_DIR = process.env.YOHAKU_DATA_DIR || path.join(process.cwd(), "data");
-const DB_PATH = path.join(DATA_DIR, "db.json");
+// Cloudflare D1(無料枠の SQLite)を使った JSON ブロブ型のデータストア。
+// v1 はシンプルさ優先で、アプリの Database 全体を 1 行の JSON として保持する
+// (旧・ファイルシステム版 JSON ストアの D1 への素直な移行)。
+// 将来ユーザー数が増えたら users/workspaces/tasks 等のテーブルに正規化する。
 
 const EMPTY_DB: Database = {
   users: [],
@@ -18,39 +15,77 @@ const EMPTY_DB: Database = {
   settings: [],
 };
 
-function load(): Database {
-  try {
-    const raw = fs.readFileSync(DB_PATH, "utf8");
-    return { ...EMPTY_DB, ...JSON.parse(raw) };
-  } catch {
-    return structuredClone(EMPTY_DB);
-  }
+let testD1: D1Database | undefined;
+
+// テスト用に D1 バインディングを差し込むためのフック。
+// vitest(Node)上では Cloudflare の実行コンテキストが存在しないため、
+// テストからのみ実際の D1 の代わりを注入する。
+export function __setD1ForTesting(db: D1Database | undefined): void {
+  testD1 = db;
+  schemaReady = false;
 }
 
-function save(db: Database) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-  const tmp = DB_PATH + "." + crypto.randomBytes(4).toString("hex") + ".tmp";
-  fs.writeFileSync(tmp, JSON.stringify(db, null, 2));
-  fs.renameSync(tmp, DB_PATH);
+let schemaReady = false;
+
+// テーブルが無ければ作る(初回アクセス時に自動で用意されるため、手動マイグレーションは不要)。
+// Worker の isolate が生きている間は 1 度だけ実行すればよい。
+async function ensureSchema(d1: D1Database): Promise<void> {
+  if (schemaReady) return;
+  await d1.exec(
+    "CREATE TABLE IF NOT EXISTS store (id INTEGER PRIMARY KEY CHECK (id = 1), data TEXT NOT NULL)"
+  );
+  schemaReady = true;
 }
 
-export function readDb(): Database {
+async function getD1(): Promise<D1Database> {
+  const d1 = testD1 ?? (await getCloudflareContext({ async: true })).env.DB;
+  await ensureSchema(d1);
+  return d1;
+}
+
+async function load(): Promise<Database> {
+  const d1 = await getD1();
+  const row = await d1
+    .prepare("SELECT data FROM store WHERE id = 1")
+    .first<{ data: string }>();
+  if (!row) return structuredClone(EMPTY_DB);
+  return { ...EMPTY_DB, ...JSON.parse(row.data) };
+}
+
+async function save(data: Database): Promise<void> {
+  const d1 = await getD1();
+  await d1
+    .prepare(
+      "INSERT INTO store (id, data) VALUES (1, ?1) ON CONFLICT(id) DO UPDATE SET data = ?1"
+    )
+    .bind(JSON.stringify(data))
+    .run();
+}
+
+export async function readDb(): Promise<Database> {
   return load();
 }
 
-// 読み取り→変更→書き込みを 1 箇所にまとめる。Node のリクエスト処理は
-// 同期コードが割り込まれないため、同期 I/O で十分な一貫性が得られる。
-export function updateDb<T>(fn: (db: Database) => T): T {
-  const db = load();
-  const result = fn(db);
-  save(db);
+// 読み取り→変更→書き込みを 1 箇所にまとめる。
+export async function updateDb<T>(
+  fn: (db: Database) => T | Promise<T>
+): Promise<T> {
+  const db = await load();
+  const result = await fn(db);
+  await save(db);
   return result;
 }
 
+function randomHex(bytes: number): string {
+  const buf = new Uint8Array(bytes);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export function newId(): string {
-  return crypto.randomBytes(8).toString("hex");
+  return randomHex(8);
 }
 
 export function newInviteCode(): string {
-  return crypto.randomBytes(5).toString("hex");
+  return randomHex(5);
 }
