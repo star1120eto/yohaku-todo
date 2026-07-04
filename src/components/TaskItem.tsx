@@ -1,7 +1,7 @@
 "use client";
 
 import type { Task } from "@/lib/types";
-import { formatDue, formatRepeat, isOverdue } from "@/lib/format";
+import { formatDue, formatDuration, formatRepeat, isOverdue } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
 
 export default function TaskItem({
@@ -72,13 +72,18 @@ export default function TaskItem({
             </span>
           )}
         </div>
-        {(task.dueAt || task.tags.length > 0 || task.repeat || task.location) && (
+        {(task.dueAt ||
+          task.tags.length > 0 ||
+          task.repeat ||
+          task.location ||
+          task.durationMinutes) && (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] text-ink-faint">
             {task.dueAt && (
               <span className={overdue ? "text-danger" : ""}>
                 {formatDue(task.dueAt)}
               </span>
             )}
+            {task.durationMinutes && <span>⏱ {formatDuration(task.durationMinutes)}</span>}
             {task.repeat && <span>↻ {formatRepeat(task)}</span>}
             {task.location && (
               <span>📍 {task.location.label || "指定場所"}</span>

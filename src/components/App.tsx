@@ -283,6 +283,7 @@ export default function App() {
       repeat: parsed.repeat,
       weekday: parsed.weekday,
       weekOfMonth: parsed.weekOfMonth,
+      durationMinutes: parsed.durationMinutes,
     });
     mutateTasks();
   };

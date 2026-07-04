@@ -3,6 +3,12 @@ import { currentUser, isMember, jsonError } from "@/lib/auth";
 import { notifyUserSlack } from "@/lib/slack";
 import type { Task } from "@/lib/types";
 
+function cleanDuration(v: unknown): number | null {
+  return typeof v === "number" && Number.isInteger(v) && v >= 5 && v <= 1440
+    ? v
+    : null;
+}
+
 export async function GET(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
@@ -79,6 +85,7 @@ export async function POST(req: Request) {
         typeof body.assigneeId === "string" && isMember(ws, body.assigneeId)
           ? body.assigneeId
           : null,
+      durationMinutes: cleanDuration(body.durationMinutes),
       createdBy: user.id,
       createdAt: now,
       updatedAt: now,
