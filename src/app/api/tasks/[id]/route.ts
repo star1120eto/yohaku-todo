@@ -5,6 +5,7 @@ import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { nextOccurrence } from "@/lib/recurrence";
 import { notifyUserSlack } from "@/lib/slack";
 import { logActivity } from "@/lib/activity";
+import { syncTaskToGoogle } from "@/lib/gcal";
 import type { Task } from "@/lib/types";
 
 function cleanDuration(v: unknown): number | null {
@@ -220,6 +221,7 @@ export async function PATCH(req: Request, { params }: Params) {
 
   if (result === "notfound") return jsonError("タスクが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では変更できません", 403);
+  syncTaskToGoogle(user.id, result).catch(() => {});
   return Response.json({ task: result });
 }
 
@@ -228,7 +230,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  type Result = "notfound" | "forbidden" | "ok";
+  type Result = "notfound" | "forbidden" | { removed: Task[] };
   const result = updateDb<Result>((db) => {
     const t = db.tasks.find((x) => x.id === id);
     if (!t) return "notfound";
@@ -236,8 +238,9 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!ws || !isMember(ws, user.id)) return "notfound";
     if (!canEdit(ws, user.id)) return "forbidden";
     // 子タスクも同時に削除する
-    const childIds = db.tasks.filter((x) => x.parentId === id).map((x) => x.id);
-    const removedIds = new Set([id, ...childIds]);
+    const children = db.tasks.filter((x) => x.parentId === id);
+    const removed = [t, ...children];
+    const removedIds = new Set(removed.map((x) => x.id));
     db.tasks = db.tasks.filter((x) => !removedIds.has(x.id));
 
     // コメント・添付ファイルの実体も削除する
@@ -260,10 +263,13 @@ export async function DELETE(_req: Request, { params }: Params) {
       type: "task.delete",
       detail: `「${t.title}」を削除`,
     });
-    return "ok";
+    return { removed };
   });
 
   if (result === "notfound") return jsonError("タスクが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では削除できません", 403);
+  for (const t of result.removed) {
+    syncTaskToGoogle(user.id, t, true).catch(() => {});
+  }
   return Response.json({ ok: true });
 }

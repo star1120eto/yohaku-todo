@@ -150,6 +150,23 @@ export interface Template {
   createdAt: string;
 }
 
+export interface GoogleAccount {
+  userId: string;
+  email: string;
+  accessToken: string; // 暗号化して保存(AES-256-GCM)
+  refreshToken: string; // 暗号化して保存(AES-256-GCM)
+  expiresAt: number; // アクセストークンの有効期限(epoch ms)
+  calendarId: string; // 同期先カレンダー。既定 "primary"
+  connectedAt: string;
+}
+
+// タスク1件・接続ユーザー1人ごとの、Googleカレンダー予定IDとの対応
+export interface GcalEventLink {
+  userId: string;
+  taskId: string;
+  eventId: string;
+}
+
 export interface SavedFilter {
   id: string;
   userId: string; // フィルターは個人所有(ワークスペース非依存)
@@ -228,4 +245,6 @@ export interface Database {
   activities: Activity[];
   comments: Comment[];
   templates: Template[];
+  googleAccounts: GoogleAccount[];
+  gcalEventLinks: GcalEventLink[];
 }

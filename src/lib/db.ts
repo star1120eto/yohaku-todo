@@ -22,6 +22,8 @@ const EMPTY_DB: Database = {
   activities: [],
   comments: [],
   templates: [],
+  googleAccounts: [],
+  gcalEventLinks: [],
 };
 
 function load(): Database {

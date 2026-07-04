@@ -2,6 +2,7 @@ import { readDb, updateDb, newId } from "@/lib/db";
 import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { notifyUserSlack } from "@/lib/slack";
 import { logActivity } from "@/lib/activity";
+import { syncTaskToGoogle } from "@/lib/gcal";
 import type { Task } from "@/lib/types";
 
 function cleanDuration(v: unknown): number | null {
@@ -140,5 +141,6 @@ export async function POST(req: Request) {
 
   if (result === "notfound") return jsonError("ワークスペースが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では追加できません", 403);
+  syncTaskToGoogle(user.id, result).catch(() => {});
   return Response.json({ task: result });
 }

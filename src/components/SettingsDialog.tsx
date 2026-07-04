@@ -1,10 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Theme, UserSettings } from "@/lib/types";
 import { api } from "@/hooks/useData";
 import { applyTheme } from "@/lib/theme";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
+
+interface GcalStatus {
+  configured: boolean;
+  connected: boolean;
+  email?: string;
+  calendarId?: string;
+}
 
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: "light", label: "ライト" },
@@ -37,6 +44,33 @@ export default function SettingsDialog({
   const [notifState, setNotifState] = useState(
     typeof Notification !== "undefined" ? Notification.permission : "unsupported"
   );
+  const [gcal, setGcal] = useState<GcalStatus | null>(null);
+  const [calendarId, setCalendarId] = useState("primary");
+  const [gcalMsg, setGcalMsg] = useState("");
+
+  useEffect(() => {
+    api("/api/integrations/google", "GET")
+      .then((res: GcalStatus) => {
+        setGcal(res);
+        setCalendarId(res.calendarId || "primary");
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveCalendarId = async () => {
+    setGcalMsg("");
+    try {
+      await api("/api/integrations/google", "PATCH", { calendarId });
+      setGcalMsg("保存しました。");
+    } catch (err) {
+      setGcalMsg(err instanceof Error ? err.message : "保存に失敗しました");
+    }
+  };
+
+  const disconnectGcal = async () => {
+    await api("/api/integrations/google", "DELETE");
+    setGcal({ configured: true, connected: false });
+  };
 
   const requestNotification = async () => {
     if (typeof Notification === "undefined") return;
@@ -170,6 +204,55 @@ export default function SettingsDialog({
         </div>
         {slackMsg && <p className="text-[11px] text-ink-soft mt-1.5">{slackMsg}</p>}
       </div>
+
+      {gcal?.configured && (
+        <div className="rounded-xl border border-line bg-paper/60 p-4 mb-6">
+          <h3 className="text-xs text-ink-soft mb-2">Googleカレンダー連携</h3>
+          {gcal.connected ? (
+            <>
+              <p className="text-sm text-accent mb-2">
+                {gcal.email || "接続中"} と連携しています ✓
+              </p>
+              <p className="text-[11px] text-ink-faint mb-2 leading-5">
+                期日のあるタスクの作成・変更・完了・削除が、このカレンダーへ反映されます。
+              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <input
+                  className={inputClass}
+                  value={calendarId}
+                  onChange={(e) => setCalendarId(e.target.value)}
+                  placeholder="primary"
+                />
+                <button
+                  onClick={saveCalendarId}
+                  className="text-xs text-accent hover:underline shrink-0"
+                >
+                  保存
+                </button>
+              </div>
+              {gcalMsg && <p className="text-[11px] text-ink-soft mb-2">{gcalMsg}</p>}
+              <button
+                onClick={disconnectGcal}
+                className="text-xs text-ink-faint hover:text-danger transition-colors"
+              >
+                連携を解除
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-[11px] text-ink-faint mb-3 leading-5">
+                Googleカレンダーと連携すると、期日のあるタスクが自動的にカレンダーへ同期されます。
+              </p>
+              <a
+                href="/api/integrations/google/connect"
+                className="inline-block text-sm text-accent hover:underline"
+              >
+                Googleカレンダーと連携する
+              </a>
+            </>
+          )}
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-2 border-t border-line/70">
         <button onClick={onLogout} className="text-sm text-ink-faint hover:text-danger transition-colors">
