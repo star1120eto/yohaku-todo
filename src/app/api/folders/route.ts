@@ -1,6 +1,7 @@
 import { readDb, updateDb, newId } from "@/lib/db";
-import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
+import type { Folder } from "@/lib/types";
 
 export async function GET(req: Request) {
   const user = await currentUser();
@@ -25,9 +26,11 @@ export async function POST(req: Request) {
   const workspaceId = String(body.workspaceId ?? "");
   if (!name) return jsonError("フォルダ名を入力してください", 400);
 
-  const folder = updateDb((db) => {
+  type Result = "notfound" | "forbidden" | Folder;
+  const result = updateDb<Result>((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
-    if (!ws || !isMember(ws, user.id)) return null;
+    if (!ws || !isMember(ws, user.id)) return "notfound";
+    if (!canEdit(ws, user.id)) return "forbidden";
     const existing = db.folders.find(
       (f) => f.workspaceId === workspaceId && f.name === name
     );
@@ -49,6 +52,7 @@ export async function POST(req: Request) {
     return f;
   });
 
-  if (!folder) return jsonError("ワークスペースが見つかりません", 404);
-  return Response.json({ folder });
+  if (result === "notfound") return jsonError("ワークスペースが見つかりません", 404);
+  if (result === "forbidden") return jsonError("閲覧のみの権限では作成できません", 403);
+  return Response.json({ folder: result });
 }

@@ -1,5 +1,6 @@
 import { readDb, updateDb, newId } from "@/lib/db";
-import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
+import type { Section } from "@/lib/types";
 
 export async function GET(req: Request) {
   const user = await currentUser();
@@ -25,10 +26,12 @@ export async function POST(req: Request) {
   const folderId = String(body.folderId ?? "");
   if (!name) return jsonError("セクション名を入力してください", 400);
 
-  const section = updateDb((db) => {
+  type Result = "notfound" | "forbidden" | Section;
+  const result = updateDb<Result>((db) => {
     const folder = db.folders.find((f) => f.id === folderId);
     const ws = folder && db.workspaces.find((w) => w.id === folder.workspaceId);
-    if (!folder || !ws || !isMember(ws, user.id)) return null;
+    if (!folder || !ws || !isMember(ws, user.id)) return "notfound";
+    if (!canEdit(ws, user.id)) return "forbidden";
     const s = {
       id: newId(),
       workspaceId: folder.workspaceId,
@@ -41,6 +44,7 @@ export async function POST(req: Request) {
     return s;
   });
 
-  if (!section) return jsonError("フォルダが見つかりません", 404);
-  return Response.json({ section });
+  if (result === "notfound") return jsonError("フォルダが見つかりません", 404);
+  if (result === "forbidden") return jsonError("閲覧のみの権限では作成できません", 403);
+  return Response.json({ section: result });
 }

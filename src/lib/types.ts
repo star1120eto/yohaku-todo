@@ -16,11 +16,15 @@ export interface User {
   createdAt: string;
 }
 
+export type MemberRole = "editor" | "viewer";
+
 export interface Workspace {
   id: string;
   name: string;
   ownerId: string;
   memberIds: string[];
+  memberRoles: Record<string, MemberRole>; // 未登録メンバーは "editor" 扱い
+  defaultRole: MemberRole; // 招待リンクから参加した人の初期ロール
   inviteCode: string;
   private: boolean; // true なら共有不可の個人スペース
   createdAt: string;

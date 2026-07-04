@@ -81,34 +81,73 @@ export default function ShareDialog({
       </div>
 
       {tab === "members" ? (
-        <ul className="divide-y divide-line/70 mb-6">
-          {workspace.members.map((m) => (
-            <li key={m.id} className="flex items-center gap-3 py-2.5">
-              <span className="w-7 h-7 rounded-full bg-accent-soft text-accent flex items-center justify-center text-xs shrink-0">
-                {m.name.slice(0, 1)}
-              </span>
-              <span className="text-sm flex-1 truncate">
-                {m.name}
-                {m.id === meId && <span className="text-ink-faint">（自分）</span>}
-              </span>
-              {m.id === workspace.ownerId ? (
-                <span className="text-[11px] text-ink-faint">オーナー</span>
-              ) : isOwner ? (
-                <button
-                  className="text-xs text-danger hover:underline"
-                  onClick={async () => {
-                    await api(`/api/workspaces/${workspace.id}`, "PATCH", {
-                      removeMemberId: m.id,
-                    });
-                    onChanged();
-                  }}
-                >
-                  削除
-                </button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="divide-y divide-line/70 mb-4">
+            {workspace.members.map((m) => (
+              <li key={m.id} className="flex items-center gap-3 py-2.5">
+                <span className="w-7 h-7 rounded-full bg-accent-soft text-accent flex items-center justify-center text-xs shrink-0">
+                  {m.name.slice(0, 1)}
+                </span>
+                <span className="text-sm flex-1 truncate">
+                  {m.name}
+                  {m.id === meId && <span className="text-ink-faint">（自分）</span>}
+                </span>
+                {m.id === workspace.ownerId ? (
+                  <span className="text-[11px] text-ink-faint">オーナー</span>
+                ) : isOwner ? (
+                  <>
+                    <select
+                      className="rounded-lg border border-line bg-field px-2 py-1 text-xs"
+                      value={m.role}
+                      onChange={async (e) => {
+                        await api(`/api/workspaces/${workspace.id}`, "PATCH", {
+                          setRole: { userId: m.id, role: e.target.value },
+                        });
+                        onChanged();
+                      }}
+                    >
+                      <option value="editor">編集者</option>
+                      <option value="viewer">閲覧のみ</option>
+                    </select>
+                    <button
+                      className="text-xs text-danger hover:underline"
+                      onClick={async () => {
+                        await api(`/api/workspaces/${workspace.id}`, "PATCH", {
+                          removeMemberId: m.id,
+                        });
+                        onChanged();
+                      }}
+                    >
+                      削除
+                    </button>
+                  </>
+                ) : (
+                  <span className="text-[11px] text-ink-faint">
+                    {m.role === "viewer" ? "閲覧のみ" : "編集者"}
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+          {isOwner && (
+            <label className="flex items-center gap-2 text-xs text-ink-soft mb-6">
+              招待リンクから参加した人の権限
+              <select
+                className="rounded-lg border border-line bg-field px-2 py-1 text-xs"
+                value={workspace.defaultRole}
+                onChange={async (e) => {
+                  await api(`/api/workspaces/${workspace.id}`, "PATCH", {
+                    defaultRole: e.target.value,
+                  });
+                  onChanged();
+                }}
+              >
+                <option value="editor">編集者</option>
+                <option value="viewer">閲覧のみ</option>
+              </select>
+            </label>
+          )}
+        </>
       ) : (
         <ul className="divide-y divide-line/70 mb-6 max-h-72 overflow-y-auto">
           {activities === null && (

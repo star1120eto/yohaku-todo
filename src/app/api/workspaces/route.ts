@@ -1,5 +1,5 @@
 import { readDb, updateDb, newId, newInviteCode } from "@/lib/db";
-import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { currentUser, isMember, jsonError, roleOf } from "@/lib/auth";
 
 export async function GET() {
   const user = await currentUser();
@@ -9,10 +9,11 @@ export async function GET() {
     .filter((w) => isMember(w, user.id))
     .map((w) => ({
       ...w,
+      myRole: roleOf(w, user.id),
       members: [w.ownerId, ...w.memberIds]
         .map((id) => db.users.find((u) => u.id === id))
         .filter(Boolean)
-        .map((u) => ({ id: u!.id, name: u!.name })),
+        .map((u) => ({ id: u!.id, name: u!.name, role: roleOf(w, u!.id) })),
     }));
   return Response.json({ workspaces });
 }
@@ -30,6 +31,8 @@ export async function POST(req: Request) {
       name,
       ownerId: user.id,
       memberIds: [],
+      memberRoles: {},
+      defaultRole: "editor" as const,
       inviteCode: newInviteCode(),
       private: false,
       createdAt: new Date().toISOString(),

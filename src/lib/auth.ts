@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { readDb } from "./db";
-import type { User, Workspace } from "./types";
+import type { MemberRole, User, Workspace } from "./types";
 
 export const UID_COOKIE = "yohaku_uid";
 
@@ -14,6 +14,16 @@ export async function currentUser(): Promise<User | null> {
 
 export function isMember(ws: Workspace, userId: string): boolean {
   return ws.ownerId === userId || ws.memberIds.includes(userId);
+}
+
+export function roleOf(ws: Workspace, userId: string): "owner" | MemberRole {
+  if (ws.ownerId === userId) return "owner";
+  return ws.memberRoles?.[userId] ?? "editor";
+}
+
+/** タスクの作成/編集/削除、フォルダ・セクション操作等ができるか。 */
+export function canEdit(ws: Workspace, userId: string): boolean {
+  return roleOf(ws, userId) !== "viewer";
 }
 
 // パスワードハッシュなどの機微情報を除いた、クライアントに返してよいユーザー表現。

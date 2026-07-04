@@ -38,6 +38,8 @@ export async function POST(req: Request) {
       name: "プライベート",
       ownerId: u.id,
       memberIds: [],
+      memberRoles: {},
+      defaultRole: "editor",
       inviteCode: newInviteCode(),
       private: true,
       createdAt: now,

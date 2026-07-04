@@ -1,6 +1,7 @@
 import { updateDb } from "@/lib/db";
-import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
+import type { Folder } from "@/lib/types";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -10,19 +11,22 @@ export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  const folder = updateDb((db) => {
+  type Result = "notfound" | "forbidden" | Folder;
+  const result = updateDb<Result>((db) => {
     const f = db.folders.find((x) => x.id === id);
-    if (!f) return null;
+    if (!f) return "notfound";
     const ws = db.workspaces.find((w) => w.id === f.workspaceId);
-    if (!ws || !isMember(ws, user.id)) return null;
+    if (!ws || !isMember(ws, user.id)) return "notfound";
+    if (!canEdit(ws, user.id)) return "forbidden";
     if (typeof body.name === "string" && body.name.trim()) {
       f.name = body.name.trim();
     }
     return f;
   });
 
-  if (!folder) return jsonError("フォルダが見つかりません", 404);
-  return Response.json({ folder });
+  if (result === "notfound") return jsonError("フォルダが見つかりません", 404);
+  if (result === "forbidden") return jsonError("閲覧のみの権限では変更できません", 403);
+  return Response.json({ folder: result });
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
@@ -30,11 +34,13 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  const ok = updateDb((db) => {
+  type Result = "notfound" | "forbidden" | "ok";
+  const result = updateDb<Result>((db) => {
     const f = db.folders.find((x) => x.id === id);
-    if (!f) return false;
+    if (!f) return "notfound";
     const ws = db.workspaces.find((w) => w.id === f.workspaceId);
-    if (!ws || !isMember(ws, user.id)) return false;
+    if (!ws || !isMember(ws, user.id)) return "notfound";
+    if (!canEdit(ws, user.id)) return "forbidden";
     db.folders = db.folders.filter((x) => x.id !== id);
     db.sections = db.sections.filter((s) => s.folderId !== id);
     // フォルダ内のタスクは「フォルダなし」に移す
@@ -50,9 +56,10 @@ export async function DELETE(_req: Request, { params }: Params) {
       type: "folder.delete",
       detail: `フォルダ「${f.name}」を削除`,
     });
-    return true;
+    return "ok";
   });
 
-  if (!ok) return jsonError("フォルダが見つかりません", 404);
+  if (result === "notfound") return jsonError("フォルダが見つかりません", 404);
+  if (result === "forbidden") return jsonError("閲覧のみの権限では削除できません", 403);
   return Response.json({ ok: true });
 }
