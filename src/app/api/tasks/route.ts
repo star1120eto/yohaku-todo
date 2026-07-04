@@ -62,10 +62,20 @@ export async function POST(req: Request) {
       }
     }
 
+    // セクションは指定フォルダに属するものだけ有効
+    let sectionId: string | null = null;
+    if (typeof body.sectionId === "string" && folderId) {
+      const section = db.sections.find(
+        (x) => x.id === body.sectionId && x.folderId === folderId
+      );
+      if (section) sectionId = section.id;
+    }
+
     const t: Task = {
       id: newId(),
       workspaceId,
       folderId,
+      sectionId,
       parentId,
       title,
       note: typeof body.note === "string" ? body.note : "",
