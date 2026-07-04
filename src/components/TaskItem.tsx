@@ -1,7 +1,14 @@
 "use client";
 
 import type { Task } from "@/lib/types";
-import { formatDue, formatDuration, formatRepeat, isOverdue } from "@/lib/format";
+import {
+  deadlineColor,
+  formatDeadline,
+  formatDue,
+  formatDuration,
+  formatRepeat,
+  isOverdue,
+} from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
 
 export default function TaskItem({
@@ -73,6 +80,7 @@ export default function TaskItem({
           )}
         </div>
         {(task.dueAt ||
+          task.deadlineAt ||
           task.tags.length > 0 ||
           task.repeat ||
           task.location ||
@@ -81,6 +89,11 @@ export default function TaskItem({
             {task.dueAt && (
               <span className={overdue ? "text-danger" : ""}>
                 {formatDue(task.dueAt)}
+              </span>
+            )}
+            {task.deadlineAt && !task.completed && (
+              <span className={deadlineColor(task.deadlineAt)}>
+                🚩 {formatDeadline(task.deadlineAt)}
               </span>
             )}
             {task.durationMinutes && <span>⏱ {formatDuration(task.durationMinutes)}</span>}
