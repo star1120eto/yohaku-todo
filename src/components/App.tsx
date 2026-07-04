@@ -28,6 +28,7 @@ import SettingsDialog from "./SettingsDialog";
 import FilterDialog from "./FilterDialog";
 import Board from "./Board";
 import MonthView from "./MonthView";
+import StatsDialog from "./StatsDialog";
 import Notifier from "./Notifier";
 import { applyTheme } from "@/lib/theme";
 import { Field, Modal, PrimaryButton, inputClass } from "./ui";
@@ -69,6 +70,7 @@ export default function App() {
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showStats, setShowStats] = useState(false);
   const [filterDialog, setFilterDialog] = useState<
     { mode: "create" } | { mode: "edit"; filter: SavedFilter } | null
   >(null);
@@ -568,6 +570,7 @@ export default function App() {
             }
           }}
           onOpenSettings={() => setShowSettings(true)}
+          onOpenStats={() => setShowStats(true)}
           taskCounts={taskCounts}
           savedFilters={savedFilters}
           onCreateFilter={() => setFilterDialog({ mode: "create" })}
@@ -884,6 +887,9 @@ export default function App() {
           onSaved={mutateFilters}
           onClose={() => setFilterDialog(null)}
         />
+      )}
+      {showStats && (
+        <StatsDialog workspaces={workspaces} onClose={() => setShowStats(false)} />
       )}
     </div>
   );

@@ -79,6 +79,7 @@ export default function Sidebar({
   onCreateFolder,
   onDeleteFolder,
   onOpenSettings,
+  onOpenStats,
   taskCounts,
   savedFilters,
   onCreateFilter,
@@ -102,6 +103,7 @@ export default function Sidebar({
   onCreateFolder: (name: string) => void;
   onDeleteFolder: (id: string) => void;
   onOpenSettings: () => void;
+  onOpenStats: () => void;
   taskCounts: { all: number; today: number; mine: number };
   savedFilters: SavedFilter[];
   onCreateFilter: () => void;
@@ -359,6 +361,17 @@ export default function Sidebar({
       )}
 
       <div className="mt-auto px-3 pb-4">
+        <button
+          onClick={onOpenStats}
+          className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-faint hover:text-ink transition-colors"
+        >
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+            <rect x="2.5" y="9" width="2.5" height="4.5" rx="0.5" fill="currentColor" />
+            <rect x="6.75" y="5" width="2.5" height="8.5" rx="0.5" fill="currentColor" />
+            <rect x="11" y="7" width="2.5" height="6.5" rx="0.5" fill="currentColor" />
+          </svg>
+          ふりかえり
+        </button>
         <button
           onClick={onOpenSettings}
           className="flex items-center gap-2 px-3 py-1.5 text-sm text-ink-faint hover:text-ink transition-colors"
