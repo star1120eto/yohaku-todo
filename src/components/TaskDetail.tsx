@@ -22,12 +22,18 @@ function daysInMonth(d: Date) {
 export default function TaskDetail({
   task,
   folders,
+  allTasks,
+  onOpenTask,
+  onTasksChanged,
   onSave,
   onDelete,
   onClose,
 }: {
   task: Task;
   folders: Folder[];
+  allTasks: Task[];
+  onOpenTask: (task: Task) => void;
+  onTasksChanged: () => void;
   onSave: (patch: Partial<Task>) => Promise<void>;
   onDelete: () => Promise<void>;
   onClose: () => void;
@@ -55,6 +61,36 @@ export default function TaskDetail({
   const [addrResults, setAddrResults] = useState<GeoResult[]>([]);
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [newSubtask, setNewSubtask] = useState("");
+
+  const parentTask = task.parentId
+    ? allTasks.find((t) => t.id === task.parentId) ?? null
+    : null;
+  const subtasks = allTasks
+    .filter((t) => t.parentId === task.id)
+    .sort((a, b) => a.order - b.order);
+
+  const addSubtask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubtask.trim()) return;
+    await api("/api/tasks", "POST", {
+      workspaceId: task.workspaceId,
+      parentId: task.id,
+      title: newSubtask.trim(),
+    });
+    setNewSubtask("");
+    onTasksChanged();
+  };
+
+  const toggleSubtask = async (t: Task) => {
+    await api(`/api/tasks/${t.id}`, "PATCH", { completed: !t.completed });
+    onTasksChanged();
+  };
+
+  const deleteSubtask = async (t: Task) => {
+    await api(`/api/tasks/${t.id}`, "DELETE");
+    onTasksChanged();
+  };
 
   const setCoords = (lat: number, lng: number, label = locLabel) =>
     setLocation({ label, lat, lng, radius: locRadius });
@@ -157,6 +193,16 @@ export default function TaskDetail({
       <Field label="タイトル">
         <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} />
       </Field>
+
+      {parentTask && (
+        <button
+          type="button"
+          onClick={() => onOpenTask(parentTask)}
+          className="inline-block mb-4 text-xs text-accent hover:underline"
+        >
+          ↑ 親: {parentTask.title}
+        </button>
+      )}
 
       <Field label="メモ">
         <textarea
@@ -410,6 +456,61 @@ export default function TaskDetail({
           現在地・住所検索・緯度経度の手入力で場所を登録できます。アプリを開いている間、近づくと通知します。
         </p>
       </div>
+
+      {!task.parentId && (
+        <div className="mb-4">
+          <span className="block text-xs text-ink-soft mb-1.5">
+            サブタスク{subtasks.length > 0 && ` (${subtasks.filter((s) => s.completed).length}/${subtasks.length})`}
+          </span>
+          {subtasks.length > 0 && (
+            <ul className="mb-2 space-y-1">
+              {subtasks.map((s) => (
+                <li key={s.id} className="flex items-center gap-2 group">
+                  <button
+                    type="button"
+                    onClick={() => toggleSubtask(s)}
+                    aria-label={s.completed ? "未完了に戻す" : "完了にする"}
+                    className={`w-4 h-4 shrink-0 rounded-full border transition-all ${
+                      s.completed ? "bg-accent border-accent" : "border-ink-faint hover:border-accent"
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => onOpenTask(s)}
+                    className={`flex-1 text-left text-sm truncate ${
+                      s.completed ? "text-ink-faint line-through" : ""
+                    }`}
+                  >
+                    {s.title}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => deleteSubtask(s)}
+                    className="text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    ×
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <form onSubmit={addSubtask} className="flex gap-2">
+            <input
+              className={`${inputClass} text-sm`}
+              placeholder="サブタスクを追加"
+              value={newSubtask}
+              onChange={(e) => setNewSubtask(e.target.value)}
+            />
+            <button
+              type="submit"
+              disabled={!newSubtask.trim()}
+              className="shrink-0 rounded-lg border border-line px-3 text-sm text-ink-soft hover:text-ink disabled:opacity-40"
+            >
+              追加
+            </button>
+          </form>
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-2">
         <button

@@ -24,6 +24,27 @@ export async function PATCH(req: Request, { params }: Params) {
     if (Array.isArray(body.tags)) t.tags = body.tags.map(String);
     if ("folderId" in body) {
       t.folderId = typeof body.folderId === "string" ? body.folderId : null;
+      // 親のフォルダ移動には子も追従させる
+      for (const c of db.tasks) {
+        if (c.parentId === t.id) c.folderId = t.folderId;
+      }
+    }
+    if ("parentId" in body) {
+      if (typeof body.parentId === "string" && body.parentId !== t.id) {
+        const parent = db.tasks.find(
+          (x) => x.id === body.parentId && x.workspaceId === t.workspaceId
+        );
+        // 1階層のみ: 親自身が親を持つ場合、自分の子を親にする場合は拒否
+        const wouldCycle = db.tasks.some(
+          (x) => x.parentId === t.id && x.id === body.parentId
+        );
+        if (parent && !parent.parentId && !wouldCycle) {
+          t.parentId = parent.id;
+          t.folderId = parent.folderId;
+        }
+      } else {
+        t.parentId = null;
+      }
     }
     if ("dueAt" in body) {
       t.dueAt = typeof body.dueAt === "string" ? body.dueAt : null;
@@ -56,12 +77,18 @@ export async function PATCH(req: Request, { params }: Params) {
     }
     if (typeof body.completed === "boolean") {
       if (body.completed && t.repeat && t.dueAt) {
-        // 繰り返しタスクは完了せず次の予定日へ進める
+        // 繰り返しタスクは完了せず次の予定日へ進める。子タスクは未完了に戻す
         t.dueAt = nextOccurrence(new Date(t.dueAt), {
           repeat: t.repeat,
           weekday: t.weekday,
           weekOfMonth: t.weekOfMonth,
         }).toISOString();
+        for (const c of db.tasks) {
+          if (c.parentId === t.id) {
+            c.completed = false;
+            c.completedAt = null;
+          }
+        }
       } else {
         t.completed = body.completed;
         t.completedAt = body.completed ? new Date().toISOString() : null;
@@ -85,7 +112,8 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!t) return false;
     const ws = db.workspaces.find((w) => w.id === t.workspaceId);
     if (!ws || !isMember(ws, user.id)) return false;
-    db.tasks = db.tasks.filter((x) => x.id !== id);
+    // 子タスクも同時に削除する
+    db.tasks = db.tasks.filter((x) => x.id !== id && x.parentId !== id);
     return true;
   });
 

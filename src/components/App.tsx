@@ -5,6 +5,7 @@ import type { Task } from "@/lib/types";
 import { DEFAULT_PREFIXES } from "@/lib/types";
 import { parseTitle } from "@/lib/parse";
 import { matchesQuery } from "@/lib/format";
+import { buildTaskTree } from "@/lib/tree";
 import {
   api,
   useFolders,
@@ -216,6 +217,9 @@ export default function App() {
     };
   }, [visibleTasks]);
 
+  const activeNodes = useMemo(() => buildTaskTree(active), [active]);
+  const completedNodes = useMemo(() => buildTaskTree(completed), [completed]);
+
   const taskCounts = useMemo(() => {
     const end = endOfToday().getTime();
     return {
@@ -276,6 +280,17 @@ export default function App() {
   };
 
   const toggleTask = async (task: Task) => {
+    if (!task.completed) {
+      const hasIncompleteChildren = tasks.some(
+        (t) => t.parentId === task.id && !t.completed
+      );
+      if (
+        hasIncompleteChildren &&
+        !confirm("未完了のサブタスクが残っていますが、完了にしますか？")
+      ) {
+        return;
+      }
+    }
     await api(`/api/tasks/${task.id}`, "PATCH", { completed: !task.completed });
     mutateTasks();
   };
@@ -462,10 +477,13 @@ export default function App() {
             ) : (
               <>
                 <ul>
-                  {active.map((t) => (
+                  {activeNodes.map((n) => (
                     <TaskItem
-                      key={t.id}
-                      task={t}
+                      key={n.task.id}
+                      task={n.task}
+                      depth={n.depth}
+                      childCount={n.childCount}
+                      completedChildCount={n.completedChildCount}
                       onToggle={toggleTask}
                       onOpen={setOpenTask}
                     />
@@ -482,10 +500,13 @@ export default function App() {
                     </button>
                     {showCompleted && (
                       <ul className="mt-2">
-                        {completed.map((t) => (
+                        {completedNodes.map((n) => (
                           <TaskItem
-                            key={t.id}
-                            task={t}
+                            key={n.task.id}
+                            task={n.task}
+                            depth={n.depth}
+                            childCount={n.childCount}
+                            completedChildCount={n.completedChildCount}
                             onToggle={toggleTask}
                             onOpen={setOpenTask}
                           />
@@ -502,8 +523,12 @@ export default function App() {
       {/* ダイアログ群 */}
       {openTask && (
         <TaskDetail
+          key={openTask.id}
           task={openTask}
           folders={folders}
+          allTasks={tasks}
+          onOpenTask={setOpenTask}
+          onTasksChanged={mutateTasks}
           onSave={async (patch) => {
             await api(`/api/tasks/${openTask.id}`, "PATCH", patch);
             mutateTasks();

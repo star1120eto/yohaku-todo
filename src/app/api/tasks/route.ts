@@ -29,10 +29,26 @@ export async function POST(req: Request) {
   const task = updateDb((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
     if (!ws || !isMember(ws, user.id)) return null;
+
+    let parentId: string | null = null;
+    let folderId: string | null =
+      typeof body.folderId === "string" ? body.folderId : null;
+    if (typeof body.parentId === "string") {
+      const parent = db.tasks.find(
+        (x) => x.id === body.parentId && x.workspaceId === workspaceId
+      );
+      // 1階層のみ許可: 親自身が親を持つ場合はサブタスク化しない
+      if (parent && !parent.parentId) {
+        parentId = parent.id;
+        folderId = parent.folderId; // 子は親のフォルダに従う
+      }
+    }
+
     const t: Task = {
       id: newId(),
       workspaceId,
-      folderId: typeof body.folderId === "string" ? body.folderId : null,
+      folderId,
+      parentId,
       title,
       note: typeof body.note === "string" ? body.note : "",
       completed: false,
