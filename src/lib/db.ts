@@ -21,6 +21,8 @@ const EMPTY_DB: Database = {
   templates: [],
   googleAccounts: [],
   gcalEventLinks: [],
+  apiTokens: [],
+  webhooks: [],
 };
 
 let testD1: D1Database | undefined;
@@ -112,7 +114,7 @@ export async function updateDb<T>(
   );
 }
 
-function randomHex(bytes: number): string {
+export function randomHex(bytes: number): string {
   const buf = new Uint8Array(bytes);
   crypto.getRandomValues(buf);
   return Array.from(buf, (b) => b.toString(16).padStart(2, "0")).join("");
