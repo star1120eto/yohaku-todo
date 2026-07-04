@@ -53,6 +53,8 @@ export interface Task {
   priority: Priority;
   tags: string[];
   dueAt: string | null; // ISO datetime for due / notification
+  deadlineAt: string | null; // 締切(日付のみの意味。23:59保存)
+  reminders: number[]; // dueAtの何分前に通知するか。[0]=期日ちょうど
   repeat: Repeat;
   weekday: number | null; // 0=日〜6=土。monthly-weekday で使用
   weekOfMonth: number | null; // 1〜5、-1=最終。monthly-weekday で使用

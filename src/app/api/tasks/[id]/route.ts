@@ -9,6 +9,16 @@ function cleanDuration(v: unknown): number | null {
     : null;
 }
 
+function cleanReminders(v: unknown): number[] {
+  if (!Array.isArray(v)) return [0];
+  const nums = v.filter(
+    (x): x is number =>
+      typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= 43200
+  );
+  const uniq = [...new Set(nums)].sort((a, b) => a - b).slice(0, 5);
+  return uniq.length ? uniq : [0];
+}
+
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -55,6 +65,12 @@ export async function PATCH(req: Request, { params }: Params) {
     }
     if ("dueAt" in body) {
       t.dueAt = typeof body.dueAt === "string" ? body.dueAt : null;
+    }
+    if ("deadlineAt" in body) {
+      t.deadlineAt = typeof body.deadlineAt === "string" ? body.deadlineAt : null;
+    }
+    if ("reminders" in body) {
+      t.reminders = cleanReminders(body.reminders);
     }
     if ("repeat" in body) {
       t.repeat = ["daily", "weekly", "monthly", "monthly-weekday"].includes(body.repeat)

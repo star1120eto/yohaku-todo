@@ -55,6 +55,23 @@ export function isOverdue(iso: string, now: Date = new Date()): boolean {
   return new Date(iso).getTime() < now.getTime();
 }
 
+/** 締切の日付表示(時刻なし)。 */
+export function formatDeadline(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return sameYear
+    ? `${d.getMonth() + 1}/${d.getDate()}`
+    : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/** 締切の近さに応じた色クラス(超過=赤、3日以内=黄土色)。 */
+export function deadlineColor(iso: string, now: Date = new Date()): string {
+  const diff = new Date(iso).getTime() - now.getTime();
+  if (diff < 0) return "text-danger";
+  if (diff < 3 * 86400000) return "text-[#c79a4e]";
+  return "";
+}
+
 /** datetime-local 入力用 (ローカルタイムの YYYY-MM-DDTHH:mm) */
 export function toLocalInputValue(iso: string): string {
   const d = new Date(iso);

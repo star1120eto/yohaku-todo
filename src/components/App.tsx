@@ -181,9 +181,12 @@ export default function App() {
       const start = startOfToday().getTime();
       const end = endOfToday().getTime();
       list = list.filter((t) => {
-        if (!t.dueAt) return false;
-        const due = new Date(t.dueAt).getTime();
-        return due <= end && (t.completed ? due >= start : true);
+        const due = t.dueAt ? new Date(t.dueAt).getTime() : null;
+        const deadline = t.deadlineAt ? new Date(t.deadlineAt).getTime() : null;
+        const dueMatch = due !== null && due <= end && (t.completed ? due >= start : true);
+        const deadlineMatch =
+          deadline !== null && deadline >= start && deadline <= end;
+        return dueMatch || deadlineMatch;
       });
     } else if (filter.type === "folder") {
       list = list.filter((t) => t.folderId === filter.folderId);
@@ -232,7 +235,10 @@ export default function App() {
     return {
       all: tasks.filter((t) => !t.completed).length,
       today: tasks.filter(
-        (t) => !t.completed && t.dueAt && new Date(t.dueAt).getTime() <= end
+        (t) =>
+          !t.completed &&
+          ((t.dueAt && new Date(t.dueAt).getTime() <= end) ||
+            (t.deadlineAt && new Date(t.deadlineAt).getTime() <= end))
       ).length,
       mine: tasks.filter((t) => !t.completed && t.assigneeId === user?.id).length,
     };
