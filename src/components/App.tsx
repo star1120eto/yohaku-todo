@@ -202,6 +202,7 @@ export default function App() {
 
   const prefixes = settings?.prefixes ?? DEFAULT_PREFIXES;
   const currentWs = workspaces.find((w) => w.id === wsId) ?? null;
+  const canEditWs = currentWs ? currentWs.myRole !== "viewer" : true;
   const memberNameById = useMemo(() => {
     const map = new Map<string, string>();
     currentWs?.members.forEach((m) => map.set(m.id, m.name));
@@ -614,7 +615,7 @@ export default function App() {
                   {boardMode ? "☰ リスト" : "▦ ボード"}
                 </button>
               )}
-              {!searchOpen && !calendarMode && filter.type === "folder" && (
+              {!searchOpen && !calendarMode && canEditWs && filter.type === "folder" && (
                 <button
                   onClick={() => setAddingSection(true)}
                   className="text-xs text-ink-faint hover:text-ink transition-colors"
@@ -706,7 +707,14 @@ export default function App() {
               </div>
             )}
 
-            {!searchOpen && !calendarMode && <Composer prefixes={prefixes} onSubmit={addTask} />}
+            {!searchOpen && !calendarMode && canEditWs && (
+              <Composer prefixes={prefixes} onSubmit={addTask} />
+            )}
+            {!searchOpen && !calendarMode && !canEditWs && (
+              <p className="text-xs text-ink-faint mb-6 rounded-lg bg-card border border-line px-3 py-2">
+                閲覧のみの権限です。タスクの完了/未完了は変更できます。
+              </p>
+            )}
 
             {calendarMode ? (
               <MonthView
@@ -832,6 +840,7 @@ export default function App() {
           folders={folders}
           allTasks={tasks}
           members={currentWs?.members ?? []}
+          canEdit={canEditWs}
           onOpenTask={setOpenTask}
           onTasksChanged={mutateTasks}
           onSave={async (patch) => {

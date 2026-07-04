@@ -1,8 +1,9 @@
 import { updateDb } from "@/lib/db";
-import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { nextOccurrence } from "@/lib/recurrence";
 import { notifyUserSlack } from "@/lib/slack";
 import { logActivity } from "@/lib/activity";
+import type { Task } from "@/lib/types";
 
 function cleanDuration(v: unknown): number | null {
   return typeof v === "number" && Number.isInteger(v) && v >= 5 && v <= 1440
@@ -28,11 +29,19 @@ export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  const task = await updateDb((db) => {
+  type Result = "notfound" | "forbidden" | Task;
+  const result = await updateDb<Result>((db) => {
     const t = db.tasks.find((x) => x.id === id);
-    if (!t) return null;
+    if (!t) return "notfound";
     const ws = db.workspaces.find((w) => w.id === t.workspaceId);
-    if (!ws || !isMember(ws, user.id)) return null;
+    if (!ws || !isMember(ws, user.id)) return "notfound";
+    if (!canEdit(ws, user.id)) {
+      // 閲覧のみの権限では、完了状態の切り替えだけを許可する
+      const keys = Object.keys(body);
+      if (keys.length !== 1 || keys[0] !== "completed" || typeof body.completed !== "boolean") {
+        return "forbidden";
+      }
+    }
 
     const before = {
       title: t.title,
@@ -207,8 +216,9 @@ export async function PATCH(req: Request, { params }: Params) {
     return t;
   });
 
-  if (!task) return jsonError("タスクが見つかりません", 404);
-  return Response.json({ task });
+  if (result === "notfound") return jsonError("タスクが見つかりません", 404);
+  if (result === "forbidden") return jsonError("閲覧のみの権限では変更できません", 403);
+  return Response.json({ task: result });
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
@@ -216,11 +226,13 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  const ok = await updateDb((db) => {
+  type Result = "notfound" | "forbidden" | "ok";
+  const result = await updateDb<Result>((db) => {
     const t = db.tasks.find((x) => x.id === id);
-    if (!t) return false;
+    if (!t) return "notfound";
     const ws = db.workspaces.find((w) => w.id === t.workspaceId);
-    if (!ws || !isMember(ws, user.id)) return false;
+    if (!ws || !isMember(ws, user.id)) return "notfound";
+    if (!canEdit(ws, user.id)) return "forbidden";
     // 子タスクも同時に削除する
     db.tasks = db.tasks.filter((x) => x.id !== id && x.parentId !== id);
     logActivity(db, {
@@ -230,9 +242,10 @@ export async function DELETE(_req: Request, { params }: Params) {
       type: "task.delete",
       detail: `「${t.title}」を削除`,
     });
-    return true;
+    return "ok";
   });
 
-  if (!ok) return jsonError("タスクが見つかりません", 404);
+  if (result === "notfound") return jsonError("タスクが見つかりません", 404);
+  if (result === "forbidden") return jsonError("閲覧のみの権限では削除できません", 403);
   return Response.json({ ok: true });
 }

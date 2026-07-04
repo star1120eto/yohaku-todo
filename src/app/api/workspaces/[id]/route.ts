@@ -1,6 +1,9 @@
 import { updateDb } from "@/lib/db";
-import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
+import type { MemberRole } from "@/lib/types";
+
+const ROLES: MemberRole[] = ["editor", "viewer"];
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -13,8 +16,23 @@ export async function PATCH(req: Request, { params }: Params) {
   const result = await updateDb((db) => {
     const ws = db.workspaces.find((w) => w.id === id);
     if (!ws || !isMember(ws, user.id)) return null;
-    if (typeof body.name === "string" && body.name.trim()) {
+    if (typeof body.name === "string" && body.name.trim() && canEdit(ws, user.id)) {
       ws.name = body.name.trim();
+    }
+    // メンバーのロール変更(オーナーのみ)
+    if (
+      body.setRole &&
+      typeof body.setRole.userId === "string" &&
+      ROLES.includes(body.setRole.role) &&
+      ws.ownerId === user.id &&
+      body.setRole.userId !== ws.ownerId
+    ) {
+      ws.memberRoles = ws.memberRoles ?? {};
+      ws.memberRoles[body.setRole.userId] = body.setRole.role;
+    }
+    // 招待リンクから参加した人の初期ロール(オーナーのみ)
+    if (ROLES.includes(body.defaultRole) && ws.ownerId === user.id) {
+      ws.defaultRole = body.defaultRole;
     }
     // メンバーの削除(オーナーのみ)
     if (typeof body.removeMemberId === "string" && ws.ownerId === user.id) {

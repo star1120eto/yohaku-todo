@@ -1,5 +1,5 @@
 import { readDb, updateDb, newId } from "@/lib/db";
-import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { notifyUserSlack } from "@/lib/slack";
 import { logActivity } from "@/lib/activity";
 import type { Task } from "@/lib/types";
@@ -45,9 +45,11 @@ export async function POST(req: Request) {
   if (!title) return jsonError("タイトルを入力してください", 400);
 
   const now = new Date().toISOString();
-  const task = await updateDb((db) => {
+  type Result = "notfound" | "forbidden" | Task;
+  const result = await updateDb<Result>((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
-    if (!ws || !isMember(ws, user.id)) return null;
+    if (!ws || !isMember(ws, user.id)) return "notfound";
+    if (!canEdit(ws, user.id)) return "forbidden";
 
     let parentId: string | null = null;
     let folderId: string | null =
@@ -129,6 +131,7 @@ export async function POST(req: Request) {
     return t;
   });
 
-  if (!task) return jsonError("ワークスペースが見つかりません", 404);
-  return Response.json({ task });
+  if (result === "notfound") return jsonError("ワークスペースが見つかりません", 404);
+  if (result === "forbidden") return jsonError("閲覧のみの権限では追加できません", 403);
+  return Response.json({ task: result });
 }
