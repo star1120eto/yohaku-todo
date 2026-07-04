@@ -24,6 +24,8 @@ const EMPTY_DB: Database = {
   templates: [],
   googleAccounts: [],
   gcalEventLinks: [],
+  apiTokens: [],
+  webhooks: [],
 };
 
 function load(): Database {

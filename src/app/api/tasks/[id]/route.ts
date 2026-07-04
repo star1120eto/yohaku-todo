@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
-import { updateDb, uploadsDir } from "@/lib/db";
+import { readDb, updateDb, uploadsDir } from "@/lib/db";
 import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { nextOccurrence } from "@/lib/recurrence";
 import { notifyUserSlack } from "@/lib/slack";
 import { logActivity } from "@/lib/activity";
 import { syncTaskToGoogle } from "@/lib/gcal";
+import { dispatchWebhooks } from "@/lib/webhook";
 import type { Task } from "@/lib/types";
 
 function cleanDuration(v: unknown): number | null {
@@ -32,7 +33,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  type Result = "notfound" | "forbidden" | Task;
+  type Result = "notfound" | "forbidden" | { task: Task; event: "task.update" | "task.complete" | null };
   const result = updateDb<Result>((db) => {
     const t = db.tasks.find((x) => x.id === id);
     if (!t) return "notfound";
@@ -216,13 +217,18 @@ export async function PATCH(req: Request, { params }: Params) {
     }
 
     t.updatedAt = new Date().toISOString();
-    return t;
+    const event =
+      body.completed === true ? "task.complete" : changed.length ? "task.update" : null;
+    return { task: t, event };
   });
 
   if (result === "notfound") return jsonError("タスクが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では変更できません", 403);
-  syncTaskToGoogle(user.id, result).catch(() => {});
-  return Response.json({ task: result });
+  syncTaskToGoogle(user.id, result.task).catch(() => {});
+  if (result.event) {
+    dispatchWebhooks(readDb(), result.task.workspaceId, result.event, result.task).catch(() => {});
+  }
+  return Response.json({ task: result.task });
 }
 
 export async function DELETE(_req: Request, { params }: Params) {
@@ -268,8 +274,10 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   if (result === "notfound") return jsonError("タスクが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では削除できません", 403);
+  const db = readDb();
   for (const t of result.removed) {
     syncTaskToGoogle(user.id, t, true).catch(() => {});
+    dispatchWebhooks(db, t.workspaceId, "task.delete", t).catch(() => {});
   }
   return Response.json({ ok: true });
 }

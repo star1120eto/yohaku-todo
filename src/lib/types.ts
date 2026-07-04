@@ -167,6 +167,41 @@ export interface GcalEventLink {
   eventId: string;
 }
 
+export interface ApiToken {
+  id: string;
+  userId: string;
+  name: string;
+  tokenHash: string; // sha256(平文トークンは発行時のみ返す)
+  tokenPreview: string; // 一覧表示用の先頭数文字("yhk_ab12...")
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export type WebhookEvent =
+  | "task.create"
+  | "task.update"
+  | "task.complete"
+  | "task.delete";
+
+export const WEBHOOK_EVENTS: WebhookEvent[] = [
+  "task.create",
+  "task.update",
+  "task.complete",
+  "task.delete",
+];
+
+export interface Webhook {
+  id: string;
+  userId: string; // 作成者(このユーザーがアクセスできるワークスペースのみ登録可)
+  workspaceId: string;
+  url: string;
+  secret: string; // HMAC署名用(サーバー内のみで利用、レスポンスには含めない)
+  events: WebhookEvent[];
+  createdAt: string;
+  lastStatus: number | null;
+  lastTriggeredAt: string | null;
+}
+
 export interface SavedFilter {
   id: string;
   userId: string; // フィルターは個人所有(ワークスペース非依存)
@@ -203,6 +238,7 @@ export interface UserSettings {
   theme: Theme;
   slack: SlackConfig;
   favorites: FavoriteItem[];
+  inboundToken: string; // メール取り込み用の個人トークン("" は未発行)
 }
 
 export const DEFAULT_PREFIXES: ParsePrefixes = {
@@ -219,6 +255,7 @@ export function defaultSettings(userId: string): UserSettings {
     theme: "system",
     slack: { enabled: false, webhookUrl: "" },
     favorites: [],
+    inboundToken: "",
   };
 }
 
@@ -247,4 +284,6 @@ export interface Database {
   templates: Template[];
   googleAccounts: GoogleAccount[];
   gcalEventLinks: GcalEventLink[];
+  apiTokens: ApiToken[];
+  webhooks: Webhook[];
 }

@@ -1,4 +1,4 @@
-import { readDb, updateDb } from "@/lib/db";
+import { readDb, updateDb, newId } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
 import { defaultSettings, type FavoriteItem, type Theme } from "@/lib/types";
 
@@ -56,8 +56,20 @@ function resolveFavorites(
 export async function GET() {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
-  const db = readDb();
-  const stored = db.settings.find((s) => s.userId === user.id);
+  let db = readDb();
+  let stored = db.settings.find((s) => s.userId === user.id);
+  if (!stored || !stored.inboundToken) {
+    updateDb((d) => {
+      let s = d.settings.find((x) => x.userId === user.id);
+      if (!s) {
+        s = defaultSettings(user.id);
+        d.settings.push(s);
+      }
+      if (!s.inboundToken) s.inboundToken = newId();
+    });
+    db = readDb();
+    stored = db.settings.find((s) => s.userId === user.id);
+  }
   const settings = { ...defaultSettings(user.id), ...stored };
   settings.favorites = cleanseFavorites(db, user.id, settings.favorites ?? []);
   const resolvedFavorites = resolveFavorites(db, user.id, settings.favorites);

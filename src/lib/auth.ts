@@ -1,10 +1,30 @@
 import { cookies } from "next/headers";
-import { readDb } from "./db";
+import { createHash } from "crypto";
+import { readDb, updateDb } from "./db";
 import type { MemberRole, User, Workspace } from "./types";
 
 export const UID_COOKIE = "yohaku_uid";
 
-export async function currentUser(): Promise<User | null> {
+export function hashApiToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+// Cookieセッションに加えて、外部連携用の `Authorization: Bearer <token>` も受け付ける。
+export async function currentUser(req?: Request): Promise<User | null> {
+  const auth = req?.headers.get("authorization");
+  if (auth?.startsWith("Bearer ")) {
+    const token = auth.slice("Bearer ".length).trim();
+    const hash = hashApiToken(token);
+    const db = readDb();
+    const apiToken = db.apiTokens.find((t) => t.tokenHash === hash);
+    if (!apiToken) return null;
+    updateDb((d) => {
+      const t = d.apiTokens.find((x) => x.id === apiToken.id);
+      if (t) t.lastUsedAt = new Date().toISOString();
+    });
+    return db.users.find((u) => u.id === apiToken.userId) ?? null;
+  }
+
   const store = await cookies();
   const uid = store.get(UID_COOKIE)?.value;
   if (!uid) return null;

@@ -911,6 +911,8 @@ export default function App() {
         <SettingsDialog
           settings={settings}
           userName={user.name}
+          workspaceId={wsId}
+          workspaceName={currentWs?.name}
           onSaved={() => mutateSettings()}
           onLogout={async () => {
             await api("/api/auth", "DELETE");
