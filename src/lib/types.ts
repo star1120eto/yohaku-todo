@@ -77,6 +77,13 @@ export interface Task {
   order: number;
 }
 
+export interface CompletionRecord {
+  userId: string;
+  workspaceId: string;
+  taskId: string;
+  completedAt: string; // ISO
+}
+
 export interface SavedFilter {
   id: string;
   userId: string; // フィルターは個人所有(ワークスペース非依存)
@@ -151,4 +158,5 @@ export interface Database {
   tasks: Task[];
   settings: UserSettings[];
   savedFilters: SavedFilter[];
+  completions: CompletionRecord[];
 }

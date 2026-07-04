@@ -144,9 +144,26 @@ export async function PATCH(req: Request, { params }: Params) {
             c.completedAt = null;
           }
         }
+        db.completions.push({
+          userId: user.id,
+          workspaceId: t.workspaceId,
+          taskId: t.id,
+          completedAt: new Date().toISOString(),
+        });
       } else {
         t.completed = body.completed;
-        t.completedAt = body.completed ? new Date().toISOString() : null;
+        const completedAt = body.completed ? new Date().toISOString() : null;
+        t.completedAt = completedAt;
+        if (completedAt) {
+          db.completions.push({
+            userId: user.id,
+            workspaceId: t.workspaceId,
+            taskId: t.id,
+            completedAt,
+          });
+        } else {
+          db.completions = db.completions.filter((c) => c.taskId !== t.id);
+        }
       }
     }
     t.updatedAt = new Date().toISOString();
