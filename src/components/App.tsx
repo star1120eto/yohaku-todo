@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Task } from "@/lib/types";
 import { DEFAULT_PREFIXES } from "@/lib/types";
 import { parseTitle } from "@/lib/parse";
+import { matchesQuery } from "@/lib/format";
 import {
   api,
   useFolders,
@@ -52,6 +53,76 @@ export default function App() {
   const [showCompleted, setShowCompleted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [wsDialog, setWsDialog] = useState<"create" | "join" | null>(null);
+
+  // タスク検索
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState("");
+  const [crossWorkspace, setCrossWorkspace] = useState(false);
+  const [crossResults, setCrossResults] = useState<
+    (Task & { workspaceName: string })[]
+  >([]);
+  const [crossLoading, setCrossLoading] = useState(false);
+  const [pendingOpenTaskId, setPendingOpenTaskId] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const filterBeforeSearch = useRef<Filter>({ type: "all" });
+
+  const openSearch = () => {
+    if (!searchOpen) filterBeforeSearch.current = filter;
+    setSearchOpen(true);
+    setTimeout(() => searchInputRef.current?.focus(), 0);
+  };
+  const closeSearch = () => {
+    setSearchOpen(false);
+    setSearchInput("");
+    setCrossResults([]);
+    setCrossWorkspace(false);
+    setFilter(filterBeforeSearch.current);
+  };
+
+  // "/" キーで検索を開く(入力欄フォーカス中は無効)
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "/") {
+        e.preventDefault();
+        openSearch();
+      } else if (e.key === "Escape" && searchOpen) {
+        closeSearch();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
+  useEffect(() => {
+    if (searchOpen) setFilter({ type: "search", q: searchInput });
+  }, [searchInput, searchOpen]);
+
+  // 全ワークスペース横断検索(デバウンス)
+  useEffect(() => {
+    if (!searchOpen || !crossWorkspace || !searchInput.trim()) {
+      setCrossResults([]);
+      return;
+    }
+    setCrossLoading(true);
+    const timer = setTimeout(() => {
+      api(`/api/search?q=${encodeURIComponent(searchInput.trim())}`, "GET")
+        .then((res) => setCrossResults(res.results))
+        .finally(() => setCrossLoading(false));
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchInput, crossWorkspace, searchOpen]);
+
+  // 検索結果(別ワークスペース)からタスクを開く: WS切替後にタスクが読み込まれたら開く
+  useEffect(() => {
+    if (!pendingOpenTaskId) return;
+    const t = tasks.find((x) => x.id === pendingOpenTaskId);
+    if (t) {
+      setOpenTask(t);
+      setPendingOpenTaskId(null);
+    }
+  }, [pendingOpenTaskId, tasks]);
 
   // サイドバーの初期状態: デスクトップは開く(保存値を優先)、モバイルは閉じる
   useEffect(() => {
@@ -112,6 +183,8 @@ export default function App() {
       list = list.filter((t) => t.folderId === filter.folderId);
     } else if (filter.type === "tag") {
       list = list.filter((t) => t.tags.includes(filter.tag));
+    } else if (filter.type === "search") {
+      list = list.filter((t) => matchesQuery([t.title, t.note, ...t.tags], filter.q));
     }
     return list;
   }, [tasks, filter]);
@@ -214,7 +287,9 @@ export default function App() {
         ? folders.find((f) => f.id === filter.folderId)?.name ?? "フォルダ"
         : filter.type === "tag"
           ? `タグ: ${filter.tag}`
-          : currentWs?.name ?? "すべて";
+          : filter.type === "search"
+            ? "検索"
+            : currentWs?.name ?? "すべて";
 
   return (
     <div className="min-h-dvh">
@@ -262,6 +337,12 @@ export default function App() {
           tags={allTags}
           filter={filter}
           onFilter={(f) => {
+            if (searchOpen) {
+              setSearchOpen(false);
+              setSearchInput("");
+              setCrossResults([]);
+              setCrossWorkspace(false);
+            }
             setFilter(f);
             closeOnMobile();
           }}
@@ -295,17 +376,88 @@ export default function App() {
         }`}
       >
         <div className="max-w-2xl mx-auto">
-            <h2 className="text-2xl font-normal tracking-tight mb-6">
-              {filterTitle}
-            </h2>
+            <div className="flex items-center gap-2 mb-6">
+              <h2 className="text-2xl font-normal tracking-tight flex-1">
+                {filterTitle}
+              </h2>
+              {!searchOpen && (
+                <button
+                  onClick={openSearch}
+                  aria-label="検索"
+                  className="p-1.5 text-ink-faint hover:text-ink transition-colors"
+                >
+                  <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
+                    <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M11 11l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                </button>
+              )}
+            </div>
 
-            <Composer prefixes={prefixes} onSubmit={addTask} />
+            {searchOpen && (
+              <div className="mb-6 animate-fade-up">
+                <div className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 shadow-soft focus-within:border-accent/50">
+                  <svg width="15" height="15" viewBox="0 0 17 17" fill="none" className="text-ink-faint shrink-0">
+                    <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
+                    <path d="M11 11l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  <input
+                    ref={searchInputRef}
+                    className="flex-1 bg-transparent text-sm placeholder:text-ink-faint"
+                    placeholder="タイトル・メモ・タグで検索"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                  />
+                  <button
+                    onClick={closeSearch}
+                    aria-label="検索を閉じる"
+                    className="text-ink-faint hover:text-ink shrink-0"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+                      <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
+                  </button>
+                </div>
+                <label className="flex items-center gap-1.5 mt-2 px-1 text-xs text-ink-soft cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={crossWorkspace}
+                    onChange={(e) => setCrossWorkspace(e.target.checked)}
+                    className="accent-accent"
+                  />
+                  すべてのワークスペースを検索
+                </label>
+              </div>
+            )}
 
-            {active.length === 0 && completed.length === 0 ? (
+            {!searchOpen && <Composer prefixes={prefixes} onSubmit={addTask} />}
+
+            {searchOpen && crossWorkspace ? (
+              <SearchResults
+                loading={crossLoading}
+                results={crossResults}
+                query={searchInput}
+                onOpen={(t) => {
+                  if (t.workspaceId === wsId) {
+                    setOpenTask(tasks.find((x) => x.id === t.id) ?? null);
+                  } else {
+                    setPendingOpenTaskId(t.id);
+                    setWsId(t.workspaceId);
+                  }
+                  closeSearch();
+                }}
+              />
+            ) : active.length === 0 && completed.length === 0 ? (
               <p className="text-center text-sm text-ink-faint py-20">
-                まだタスクがありません。
-                <br />
-                余白を楽しみましょう。
+                {searchOpen ? (
+                  "見つかりませんでした。"
+                ) : (
+                  <>
+                    まだタスクがありません。
+                    <br />
+                    余白を楽しみましょう。
+                  </>
+                )}
               </p>
             ) : (
               <>
@@ -399,6 +551,55 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+function SearchResults({
+  loading,
+  results,
+  query,
+  onOpen,
+}: {
+  loading: boolean;
+  results: (Task & { workspaceName: string })[];
+  query: string;
+  onOpen: (t: Task & { workspaceName: string }) => void;
+}) {
+  if (!query.trim()) {
+    return (
+      <p className="text-center text-sm text-ink-faint py-20">
+        キーワードを入力してください。
+      </p>
+    );
+  }
+  if (loading) {
+    return <p className="text-center text-sm text-ink-faint py-20">検索中…</p>;
+  }
+  if (results.length === 0) {
+    return (
+      <p className="text-center text-sm text-ink-faint py-20">
+        見つかりませんでした。
+      </p>
+    );
+  }
+  return (
+    <ul>
+      {results.map((t) => (
+        <li key={t.id} className="border-b border-line/70 last:border-b-0">
+          <button
+            onClick={() => onOpen(t)}
+            className="w-full text-left px-2 py-3 hover:bg-card/70 rounded-lg transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <span className={`text-sm truncate ${t.completed ? "text-ink-faint line-through" : ""}`}>
+                {t.title}
+              </span>
+            </div>
+            <span className="text-[11px] text-ink-faint">{t.workspaceName}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 
