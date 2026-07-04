@@ -84,6 +84,28 @@ export interface CompletionRecord {
   completedAt: string; // ISO
 }
 
+export type ActivityType =
+  | "task.create"
+  | "task.complete"
+  | "task.reopen"
+  | "task.update"
+  | "task.delete"
+  | "folder.create"
+  | "folder.delete"
+  | "member.join"
+  | "member.leave"
+  | "member.remove";
+
+export interface Activity {
+  id: string;
+  workspaceId: string;
+  taskId: string | null;
+  actorId: string;
+  type: ActivityType;
+  detail: string; // 表示用に組み立て済みの日本語要約
+  createdAt: string;
+}
+
 export interface SavedFilter {
   id: string;
   userId: string; // フィルターは個人所有(ワークスペース非依存)
@@ -159,4 +181,5 @@ export interface Database {
   settings: UserSettings[];
   savedFilters: SavedFilter[];
   completions: CompletionRecord[];
+  activities: Activity[];
 }

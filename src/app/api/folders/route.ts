@@ -1,5 +1,6 @@
 import { readDb, updateDb, newId } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function GET(req: Request) {
   const user = await currentUser();
@@ -39,6 +40,12 @@ export async function POST(req: Request) {
       createdAt: new Date().toISOString(),
     };
     db.folders.push(f);
+    logActivity(db, {
+      workspaceId,
+      actorId: user.id,
+      type: "folder.create",
+      detail: `フォルダ「${f.name}」を作成`,
+    });
     return f;
   });
 

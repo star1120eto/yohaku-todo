@@ -1,6 +1,7 @@
 import { readDb, updateDb, newId } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
 import { notifyUserSlack } from "@/lib/slack";
+import { logActivity } from "@/lib/activity";
 import type { Task } from "@/lib/types";
 
 function cleanDuration(v: unknown): number | null {
@@ -118,6 +119,13 @@ export async function POST(req: Request) {
     if (t.assigneeId && t.assigneeId !== user.id) {
       notifyUserSlack(db, t.assigneeId, `👤 「${t.title}」があなたに割り当てられました`);
     }
+    logActivity(db, {
+      workspaceId,
+      taskId: t.id,
+      actorId: user.id,
+      type: "task.create",
+      detail: `「${t.title}」を作成`,
+    });
     return t;
   });
 
