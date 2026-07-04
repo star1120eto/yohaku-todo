@@ -1,5 +1,6 @@
 import { readDb, updateDb, newId } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { notifyUserSlack } from "@/lib/slack";
 import type { Task } from "@/lib/types";
 
 export async function GET(req: Request) {
@@ -74,12 +75,19 @@ export async function POST(req: Request) {
               radius: Number(body.location.radius) || 300,
             }
           : null,
+      assigneeId:
+        typeof body.assigneeId === "string" && isMember(ws, body.assigneeId)
+          ? body.assigneeId
+          : null,
       createdBy: user.id,
       createdAt: now,
       updatedAt: now,
       order: db.tasks.filter((x) => x.workspaceId === workspaceId).length,
     };
     db.tasks.push(t);
+    if (t.assigneeId && t.assigneeId !== user.id) {
+      notifyUserSlack(db, t.assigneeId, `👤 「${t.title}」があなたに割り当てられました`);
+    }
     return t;
   });
 

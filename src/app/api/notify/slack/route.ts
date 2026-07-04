@@ -3,6 +3,7 @@ import { currentUser, jsonError } from "@/lib/auth";
 
 // ユーザー設定に保存された Slack Incoming Webhook へ通知を送る。
 // Webhook URL はサーバー側にのみ保持し、クライアントには渡さない。
+// (この手動送信ルートはテスト送信用。自動通知は src/lib/slack.ts の notifyUserSlack を使う)
 export async function POST(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);

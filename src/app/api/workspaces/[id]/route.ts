@@ -18,10 +18,20 @@ export async function PATCH(req: Request, { params }: Params) {
     // メンバーの削除(オーナーのみ)
     if (typeof body.removeMemberId === "string" && ws.ownerId === user.id) {
       ws.memberIds = ws.memberIds.filter((m) => m !== body.removeMemberId);
+      for (const t of db.tasks) {
+        if (t.workspaceId === ws.id && t.assigneeId === body.removeMemberId) {
+          t.assigneeId = null;
+        }
+      }
     }
     // 自分が退出する
     if (body.leave === true && ws.ownerId !== user.id) {
       ws.memberIds = ws.memberIds.filter((m) => m !== user.id);
+      for (const t of db.tasks) {
+        if (t.workspaceId === ws.id && t.assigneeId === user.id) {
+          t.assigneeId = null;
+        }
+      }
     }
     return ws;
   });

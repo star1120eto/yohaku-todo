@@ -164,6 +164,11 @@ export default function App() {
 
   const prefixes = settings?.prefixes ?? DEFAULT_PREFIXES;
   const currentWs = workspaces.find((w) => w.id === wsId) ?? null;
+  const memberNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    currentWs?.members.forEach((m) => map.set(m.id, m.name));
+    return map;
+  }, [currentWs]);
 
   const allTags = useMemo(
     () => [...new Set(tasks.flatMap((t) => t.tags))].sort(),
@@ -186,9 +191,11 @@ export default function App() {
       list = list.filter((t) => t.tags.includes(filter.tag));
     } else if (filter.type === "search") {
       list = list.filter((t) => matchesQuery([t.title, t.note, ...t.tags], filter.q));
+    } else if (filter.type === "mine") {
+      list = list.filter((t) => t.assigneeId === user?.id);
     }
     return list;
-  }, [tasks, filter]);
+  }, [tasks, filter, user?.id]);
 
   const { active, completed } = useMemo(() => {
     const sortKey = (t: Task) => [
@@ -227,8 +234,9 @@ export default function App() {
       today: tasks.filter(
         (t) => !t.completed && t.dueAt && new Date(t.dueAt).getTime() <= end
       ).length,
+      mine: tasks.filter((t) => !t.completed && t.assigneeId === user?.id).length,
     };
-  }, [tasks]);
+  }, [tasks, user?.id]);
 
   if (isLoading) {
     return (
@@ -298,13 +306,15 @@ export default function App() {
   const filterTitle =
     filter.type === "today"
       ? "今日"
-      : filter.type === "folder"
-        ? folders.find((f) => f.id === filter.folderId)?.name ?? "フォルダ"
-        : filter.type === "tag"
-          ? `タグ: ${filter.tag}`
-          : filter.type === "search"
-            ? "検索"
-            : currentWs?.name ?? "すべて";
+      : filter.type === "mine"
+        ? "自分の担当"
+        : filter.type === "folder"
+          ? folders.find((f) => f.id === filter.folderId)?.name ?? "フォルダ"
+          : filter.type === "tag"
+            ? `タグ: ${filter.tag}`
+            : filter.type === "search"
+              ? "検索"
+              : currentWs?.name ?? "すべて";
 
   return (
     <div className="min-h-dvh">
@@ -484,6 +494,9 @@ export default function App() {
                       depth={n.depth}
                       childCount={n.childCount}
                       completedChildCount={n.completedChildCount}
+                      assigneeName={
+                        n.task.assigneeId ? memberNameById.get(n.task.assigneeId) : undefined
+                      }
                       onToggle={toggleTask}
                       onOpen={setOpenTask}
                     />
@@ -507,6 +520,9 @@ export default function App() {
                             depth={n.depth}
                             childCount={n.childCount}
                             completedChildCount={n.completedChildCount}
+                            assigneeName={
+                              n.task.assigneeId ? memberNameById.get(n.task.assigneeId) : undefined
+                            }
                             onToggle={toggleTask}
                             onOpen={setOpenTask}
                           />
@@ -527,6 +543,7 @@ export default function App() {
           task={openTask}
           folders={folders}
           allTasks={tasks}
+          members={currentWs?.members ?? []}
           onOpenTask={setOpenTask}
           onTasksChanged={mutateTasks}
           onSave={async (patch) => {

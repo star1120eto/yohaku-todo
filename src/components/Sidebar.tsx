@@ -7,6 +7,7 @@ import type { WorkspaceWithMembers } from "@/hooks/useData";
 export type Filter =
   | { type: "all" }
   | { type: "today" }
+  | { type: "mine" }
   | { type: "folder"; folderId: string }
   | { type: "tag"; tag: string }
   | { type: "search"; q: string };
@@ -70,7 +71,7 @@ export default function Sidebar({
   onCreateFolder: (name: string) => void;
   onDeleteFolder: (id: string) => void;
   onOpenSettings: () => void;
-  taskCounts: { all: number; today: number };
+  taskCounts: { all: number; today: number; mine: number };
 }) {
   const [newFolder, setNewFolder] = useState("");
   const [addingFolder, setAddingFolder] = useState(false);
@@ -141,6 +142,14 @@ export default function Sidebar({
               <span className="ml-1.5 text-[10px] text-ink-faint">{taskCounts.today}</span>
             </NavButton>
           </li>
+          {current && !current.private && current.members.length > 1 && (
+            <li>
+              <NavButton active={filter.type === "mine"} onClick={() => onFilter({ type: "mine" })}>
+                自分の担当
+                <span className="ml-1.5 text-[10px] text-ink-faint">{taskCounts.mine}</span>
+              </NavButton>
+            </li>
+          )}
         </ul>
       </div>
 
