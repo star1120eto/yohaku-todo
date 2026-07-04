@@ -58,6 +58,7 @@ export interface Task {
   weekOfMonth: number | null; // 1〜5、-1=最終。monthly-weekday で使用
   location: TaskLocation | null;
   assigneeId: string | null; // 共有ワークスペースのメンバーへの単一アサイン
+  durationMinutes: number | null; // 所要時間(分)。5〜1440
   createdBy: string;
   createdAt: string;
   updatedAt: string;

@@ -3,6 +3,12 @@ import { currentUser, isMember, jsonError } from "@/lib/auth";
 import { nextOccurrence } from "@/lib/recurrence";
 import { notifyUserSlack } from "@/lib/slack";
 
+function cleanDuration(v: unknown): number | null {
+  return typeof v === "number" && Number.isInteger(v) && v >= 5 && v <= 1440
+    ? v
+    : null;
+}
+
 type Params = { params: Promise<{ id: string }> };
 
 export async function PATCH(req: Request, { params }: Params) {
@@ -87,6 +93,9 @@ export async function PATCH(req: Request, { params }: Params) {
           notifyUserSlack(db, nextAssignee, `👤 「${t.title}」があなたに割り当てられました`);
         }
       }
+    }
+    if ("durationMinutes" in body) {
+      t.durationMinutes = cleanDuration(body.durationMinutes);
     }
     if (typeof body.completed === "boolean") {
       if (body.completed && t.repeat && t.dueAt) {

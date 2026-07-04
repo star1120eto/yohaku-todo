@@ -53,6 +53,7 @@ export default function TaskDetail({
   const [dueTime, setDueTime] = useState(
     initDue ? `${pad(initDue.getHours())}:${pad(initDue.getMinutes())}` : "09:00"
   );
+  const [durationMinutes, setDurationMinutes] = useState(task.durationMinutes ?? 0);
   const [showCal, setShowCal] = useState(false);
   const [repeat, setRepeat] = useState<string>(task.repeat ?? "");
   const [location, setLocation] = useState<TaskLocation | null>(task.location);
@@ -172,6 +173,7 @@ export default function TaskDetail({
           .filter(Boolean),
         folderId: folderId || null,
         assigneeId: assigneeId || null,
+        durationMinutes: durationMinutes || null,
         dueAt,
         repeat: (repeat || null) as Task["repeat"],
         weekday,
@@ -259,6 +261,24 @@ export default function TaskDetail({
           </div>
         )}
       </div>
+
+      <Field label="所要時間">
+        <select
+          className={inputClass}
+          value={durationMinutes}
+          onChange={(e) => setDurationMinutes(Number(e.target.value))}
+        >
+          <option value={0}>なし</option>
+          <option value={15}>15分</option>
+          <option value={30}>30分</option>
+          <option value={45}>45分</option>
+          <option value={60}>1時間</option>
+          <option value={90}>1時間30分</option>
+          <option value={120}>2時間</option>
+          <option value={180}>3時間</option>
+          <option value={240}>半日(4時間)</option>
+        </select>
+      </Field>
 
       <div className="grid grid-cols-2 gap-4">
         <Field label="繰り返し">
