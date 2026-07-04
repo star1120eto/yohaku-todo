@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SavedFilter, Task } from "@/lib/types";
-import { DEFAULT_PREFIXES } from "@/lib/types";
+import { DEFAULT_PREFIXES, favoriteKey } from "@/lib/types";
 import { parseTitle } from "@/lib/parse";
 import { matchesQuery } from "@/lib/format";
 import { buildTaskTree } from "@/lib/tree";
@@ -15,6 +15,7 @@ import {
   useSettings,
   useTasks,
   useWorkspaces,
+  type ResolvedFavorite,
 } from "@/hooks/useData";
 import Login from "./Login";
 import Sidebar, { type Filter } from "./Sidebar";
@@ -48,7 +49,11 @@ export default function App() {
   const [wsId, setWsId] = useState<string | null>(null);
   const { folders, mutate: mutateFolders } = useFolders(wsId);
   const { tasks, mutate: mutateTasks } = useTasks(wsId);
-  const { settings, mutate: mutateSettings } = useSettings(!!user);
+  const {
+    settings,
+    resolvedFavorites,
+    mutate: mutateSettings,
+  } = useSettings(!!user);
   const { filters: savedFilters, mutate: mutateFilters } = useSavedFilters(!!user);
 
   const [filter, setFilter] = useState<Filter>({ type: "all" });
@@ -323,6 +328,34 @@ export default function App() {
     mutateTasks();
   };
 
+  const isFavorite = (type: "folder" | "tag" | "filter", ref: string) =>
+    (settings?.favorites ?? []).some(
+      (f) => favoriteKey(f.type, f.ref) === favoriteKey(type, ref)
+    );
+
+  const toggleFavorite = async (type: "folder" | "tag" | "filter", ref: string) => {
+    const current = settings?.favorites ?? [];
+    const key = favoriteKey(type, ref);
+    const exists = current.some((f) => favoriteKey(f.type, f.ref) === key);
+    const next = exists
+      ? current.filter((f) => favoriteKey(f.type, f.ref) !== key)
+      : [...current, { type, ref, order: current.length }];
+    await api("/api/settings", "PUT", { favorites: next });
+    mutateSettings();
+  };
+
+  const selectFavorite = (f: ResolvedFavorite) => {
+    if (f.type === "folder" && f.workspaceId) {
+      if (f.workspaceId !== wsId) setWsId(f.workspaceId);
+      setFilter({ type: "folder", folderId: f.ref.split(":")[1] });
+    } else if (f.type === "tag") {
+      setFilter({ type: "tag", tag: f.ref });
+    } else if (f.type === "filter") {
+      setFilter({ type: "saved", filterId: f.ref });
+    }
+    closeOnMobile();
+  };
+
   const filterTitle =
     filter.type === "today"
       ? "今日"
@@ -417,6 +450,10 @@ export default function App() {
               setFilter({ type: "all" });
             }
           }}
+          favorites={resolvedFavorites}
+          isFavorite={isFavorite}
+          onToggleFavorite={toggleFavorite}
+          onSelectFavorite={selectFavorite}
         />
       </aside>
       {sidebarOpen && (

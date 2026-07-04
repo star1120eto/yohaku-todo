@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { Folder, SavedFilter } from "@/lib/types";
-import type { WorkspaceWithMembers } from "@/hooks/useData";
+import type { ResolvedFavorite, WorkspaceWithMembers } from "@/hooks/useData";
 
 export type Filter =
   | { type: "all" }
@@ -12,6 +12,28 @@ export type Filter =
   | { type: "tag"; tag: string }
   | { type: "search"; q: string }
   | { type: "saved"; filterId: string };
+
+function StarButton({
+  active,
+  onClick,
+}: {
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={active ? "お気に入りから外す" : "お気に入りに登録"}
+      className={`px-1.5 transition-opacity ${
+        active
+          ? "text-[#c79a4e] opacity-100"
+          : "text-ink-faint opacity-0 group-hover:opacity-100 hover:text-[#c79a4e]"
+      }`}
+    >
+      {active ? "★" : "☆"}
+    </button>
+  );
+}
 
 function NavButton({
   active,
@@ -62,6 +84,10 @@ export default function Sidebar({
   onCreateFilter,
   onEditFilter,
   onDeleteFilter,
+  favorites,
+  isFavorite,
+  onToggleFavorite,
+  onSelectFavorite,
 }: {
   workspaces: WorkspaceWithMembers[];
   currentWorkspaceId: string | null;
@@ -81,6 +107,10 @@ export default function Sidebar({
   onCreateFilter: () => void;
   onEditFilter: (f: SavedFilter) => void;
   onDeleteFilter: (id: string) => void;
+  favorites: ResolvedFavorite[];
+  isFavorite: (type: "folder" | "tag" | "filter", ref: string) => boolean;
+  onToggleFavorite: (type: "folder" | "tag" | "filter", ref: string) => void;
+  onSelectFavorite: (f: ResolvedFavorite) => void;
 }) {
   const [newFolder, setNewFolder] = useState("");
   const [addingFolder, setAddingFolder] = useState(false);
@@ -90,6 +120,31 @@ export default function Sidebar({
     <div className="flex flex-col h-full">
       <div className="px-3 pt-1 pb-4">
         <h1 className="font-serif text-2xl tracking-[0.14em] px-3 pb-5">よはく</h1>
+
+        {favorites.length > 0 && (
+          <div className="mb-4">
+            <div className="text-[11px] text-ink-faint px-3 pb-1.5">お気に入り</div>
+            <ul className="space-y-0.5">
+              {favorites.map((f) => {
+                const active =
+                  (f.type === "folder" &&
+                    filter.type === "folder" &&
+                    filter.folderId === f.ref.split(":")[1] &&
+                    currentWorkspaceId === f.workspaceId) ||
+                  (f.type === "tag" && filter.type === "tag" && filter.tag === f.ref) ||
+                  (f.type === "filter" && filter.type === "saved" && filter.filterId === f.ref);
+                return (
+                  <li key={`${f.type}:${f.ref}`}>
+                    <NavButton active={active} onClick={() => onSelectFavorite(f)}>
+                      {f.type === "folder" ? "📁" : f.type === "filter" ? "🔎" : "#"}{" "}
+                      {f.label}
+                    </NavButton>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
 
         <div className="text-[11px] text-ink-faint px-3 pb-1.5 flex items-center justify-between">
           <span>ワークスペース</span>
@@ -174,17 +229,23 @@ export default function Sidebar({
                 active={filter.type === "folder" && filter.folderId === f.id}
                 onClick={() => onFilter({ type: "folder", folderId: f.id })}
                 trailing={
-                  <button
-                    onClick={() => {
-                      if (confirm(`フォルダ「${f.name}」を削除しますか？（中のタスクは残ります）`)) {
-                        onDeleteFolder(f.id);
-                      }
-                    }}
-                    className="px-2 text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
-                    title="削除"
-                  >
-                    ×
-                  </button>
+                  <span className="flex">
+                    <StarButton
+                      active={isFavorite("folder", `${currentWorkspaceId}:${f.id}`)}
+                      onClick={() => onToggleFavorite("folder", `${currentWorkspaceId}:${f.id}`)}
+                    />
+                    <button
+                      onClick={() => {
+                        if (confirm(`フォルダ「${f.name}」を削除しますか？（中のタスクは残ります）`)) {
+                          onDeleteFolder(f.id);
+                        }
+                      }}
+                      className="px-2 text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="削除"
+                    >
+                      ×
+                    </button>
+                  </span>
                 }
               >
                 📁 {f.name}
@@ -228,6 +289,10 @@ export default function Sidebar({
                 onClick={() => onFilter({ type: "saved", filterId: f.id })}
                 trailing={
                   <span className="flex">
+                    <StarButton
+                      active={isFavorite("filter", f.id)}
+                      onClick={() => onToggleFavorite("filter", f.id)}
+                    />
                     <button
                       onClick={() => onEditFilter(f)}
                       className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
@@ -262,18 +327,31 @@ export default function Sidebar({
           <div className="flex flex-wrap gap-1.5 px-3">
             {tags.map((t) => {
               const active = filter.type === "tag" && filter.tag === t;
+              const fav = isFavorite("tag", t);
               return (
-                <button
-                  key={t}
-                  onClick={() => onFilter(active ? { type: "all" } : { type: "tag", tag: t })}
-                  className={`rounded-full px-2.5 py-0.5 text-[11px] transition-colors ${
-                    active
-                      ? "bg-accent text-white"
-                      : "bg-accent-soft text-accent hover:bg-accent/20"
-                  }`}
-                >
-                  {t}
-                </button>
+                <span key={t} className="group inline-flex items-center gap-0.5">
+                  <button
+                    onClick={() => onFilter(active ? { type: "all" } : { type: "tag", tag: t })}
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] transition-colors ${
+                      active
+                        ? "bg-accent text-white"
+                        : "bg-accent-soft text-accent hover:bg-accent/20"
+                    }`}
+                  >
+                    {t}
+                  </button>
+                  <button
+                    onClick={() => onToggleFavorite("tag", t)}
+                    title={fav ? "お気に入りから外す" : "お気に入りに登録"}
+                    className={`text-[11px] transition-opacity ${
+                      fav
+                        ? "text-[#c79a4e] opacity-100"
+                        : "text-ink-faint opacity-0 group-hover:opacity-100 hover:text-[#c79a4e]"
+                    }`}
+                  >
+                    {fav ? "★" : "☆"}
+                  </button>
+                </span>
               );
             })}
           </div>
