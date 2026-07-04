@@ -16,6 +16,7 @@ const EMPTY_DB: Database = {
   folders: [],
   tasks: [],
   settings: [],
+  savedFilters: [],
 };
 
 function load(): Database {

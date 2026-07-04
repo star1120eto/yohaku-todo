@@ -1,15 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Task } from "@/lib/types";
+import type { SavedFilter, Task } from "@/lib/types";
 import { DEFAULT_PREFIXES } from "@/lib/types";
 import { parseTitle } from "@/lib/parse";
 import { matchesQuery } from "@/lib/format";
 import { buildTaskTree } from "@/lib/tree";
+import { parseQuery, matchTask } from "@/lib/filterQuery";
 import {
   api,
   useFolders,
   useMe,
+  useSavedFilters,
   useSettings,
   useTasks,
   useWorkspaces,
@@ -21,6 +23,7 @@ import TaskItem from "./TaskItem";
 import TaskDetail from "./TaskDetail";
 import ShareDialog from "./ShareDialog";
 import SettingsDialog from "./SettingsDialog";
+import FilterDialog from "./FilterDialog";
 import Notifier from "./Notifier";
 import { applyTheme } from "@/lib/theme";
 import { Field, Modal, PrimaryButton, inputClass } from "./ui";
@@ -46,11 +49,15 @@ export default function App() {
   const { folders, mutate: mutateFolders } = useFolders(wsId);
   const { tasks, mutate: mutateTasks } = useTasks(wsId);
   const { settings, mutate: mutateSettings } = useSettings(!!user);
+  const { filters: savedFilters, mutate: mutateFilters } = useSavedFilters(!!user);
 
   const [filter, setFilter] = useState<Filter>({ type: "all" });
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [filterDialog, setFilterDialog] = useState<
+    { mode: "create" } | { mode: "edit"; filter: SavedFilter } | null
+  >(null);
   const [showCompleted, setShowCompleted] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [wsDialog, setWsDialog] = useState<"create" | "join" | null>(null);
@@ -196,9 +203,15 @@ export default function App() {
       list = list.filter((t) => matchesQuery([t.title, t.note, ...t.tags], filter.q));
     } else if (filter.type === "mine") {
       list = list.filter((t) => t.assigneeId === user?.id);
+    } else if (filter.type === "saved") {
+      const sf = savedFilters.find((f) => f.id === filter.filterId);
+      if (sf) {
+        const pq = parseQuery(sf.query);
+        list = list.filter((t) => matchTask(t, pq, folders));
+      }
     }
     return list;
-  }, [tasks, filter, user?.id]);
+  }, [tasks, filter, user?.id, savedFilters, folders]);
 
   const { active, completed } = useMemo(() => {
     const sortKey = (t: Task) => [
@@ -321,7 +334,9 @@ export default function App() {
             ? `タグ: ${filter.tag}`
             : filter.type === "search"
               ? "検索"
-              : currentWs?.name ?? "すべて";
+              : filter.type === "saved"
+                ? savedFilters.find((f) => f.id === filter.filterId)?.name ?? "フィルター"
+                : currentWs?.name ?? "すべて";
 
   return (
     <div className="min-h-dvh">
@@ -392,6 +407,16 @@ export default function App() {
           }}
           onOpenSettings={() => setShowSettings(true)}
           taskCounts={taskCounts}
+          savedFilters={savedFilters}
+          onCreateFilter={() => setFilterDialog({ mode: "create" })}
+          onEditFilter={(f) => setFilterDialog({ mode: "edit", filter: f })}
+          onDeleteFilter={async (id) => {
+            await api(`/api/filters/${id}`, "DELETE");
+            mutateFilters();
+            if (filter.type === "saved" && filter.filterId === id) {
+              setFilter({ type: "all" });
+            }
+          }}
         />
       </aside>
       {sidebarOpen && (
@@ -597,6 +622,14 @@ export default function App() {
             setWsDialog(null);
           }}
           onClose={() => setWsDialog(null)}
+        />
+      )}
+      {filterDialog && (
+        <FilterDialog
+          existing={filterDialog.mode === "edit" ? filterDialog.filter : null}
+          folders={folders}
+          onSaved={mutateFilters}
+          onClose={() => setFilterDialog(null)}
         />
       )}
     </div>

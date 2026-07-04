@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Folder } from "@/lib/types";
+import type { Folder, SavedFilter } from "@/lib/types";
 import type { WorkspaceWithMembers } from "@/hooks/useData";
 
 export type Filter =
@@ -10,7 +10,8 @@ export type Filter =
   | { type: "mine" }
   | { type: "folder"; folderId: string }
   | { type: "tag"; tag: string }
-  | { type: "search"; q: string };
+  | { type: "search"; q: string }
+  | { type: "saved"; filterId: string };
 
 function NavButton({
   active,
@@ -57,6 +58,10 @@ export default function Sidebar({
   onDeleteFolder,
   onOpenSettings,
   taskCounts,
+  savedFilters,
+  onCreateFilter,
+  onEditFilter,
+  onDeleteFilter,
 }: {
   workspaces: WorkspaceWithMembers[];
   currentWorkspaceId: string | null;
@@ -72,6 +77,10 @@ export default function Sidebar({
   onDeleteFolder: (id: string) => void;
   onOpenSettings: () => void;
   taskCounts: { all: number; today: number; mine: number };
+  savedFilters: SavedFilter[];
+  onCreateFilter: () => void;
+  onEditFilter: (f: SavedFilter) => void;
+  onDeleteFilter: (id: string) => void;
 }) {
   const [newFolder, setNewFolder] = useState("");
   const [addingFolder, setAddingFolder] = useState(false);
@@ -203,6 +212,47 @@ export default function Sidebar({
               </form>
             </li>
           )}
+        </ul>
+      </div>
+
+      <div className="px-3 pb-4">
+        <div className="text-[11px] text-ink-faint px-3 pb-1.5 flex items-center justify-between">
+          <span>フィルター</span>
+          <button onClick={onCreateFilter} className="hover:text-ink" title="フィルターを作成">＋</button>
+        </div>
+        <ul className="space-y-0.5">
+          {savedFilters.map((f) => (
+            <li key={f.id}>
+              <NavButton
+                active={filter.type === "saved" && filter.filterId === f.id}
+                onClick={() => onFilter({ type: "saved", filterId: f.id })}
+                trailing={
+                  <span className="flex">
+                    <button
+                      onClick={() => onEditFilter(f)}
+                      className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="編集"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`フィルター「${f.name}」を削除しますか？`)) {
+                          onDeleteFilter(f.id);
+                        }
+                      }}
+                      className="px-1.5 text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="削除"
+                    >
+                      ×
+                    </button>
+                  </span>
+                }
+              >
+                🔎 {f.name}
+              </NavButton>
+            </li>
+          ))}
         </ul>
       </div>
 
