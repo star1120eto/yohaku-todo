@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SavedFilter, Section, Task } from "@/lib/types";
+import type { SavedFilter, Section, Task, Template } from "@/lib/types";
 import { DEFAULT_PREFIXES, favoriteKey } from "@/lib/types";
 import { parseTitle } from "@/lib/parse";
 import { matchesQuery } from "@/lib/format";
@@ -15,6 +15,7 @@ import {
   useSections,
   useSettings,
   useTasks,
+  useTemplates,
   useWorkspaces,
   type ResolvedFavorite,
 } from "@/hooks/useData";
@@ -59,6 +60,7 @@ export default function App() {
     mutate: mutateSettings,
   } = useSettings(!!user);
   const { filters: savedFilters, mutate: mutateFilters } = useSavedFilters(!!user);
+  const { templates, mutate: mutateTemplates } = useTemplates(!!user);
 
   const [filter, setFilter] = useState<Filter>({ type: "all" });
   const currentFolderId = filter.type === "folder" ? filter.folderId : null;
@@ -460,6 +462,38 @@ export default function App() {
     mutateTasks();
   };
 
+  const saveFolderAsTemplate = async (folderId: string, folderName: string) => {
+    if (!wsId) return;
+    const name = prompt("テンプレート名", folderName);
+    if (!name || !name.trim()) return;
+    await api("/api/templates", "POST", { name: name.trim(), workspaceId: wsId, folderId });
+    mutateTemplates();
+  };
+
+  const applyTemplate = async (template: Template) => {
+    if (!wsId) return;
+    const folderName = prompt("作成するフォルダ名", template.name);
+    if (!folderName || !folderName.trim()) return;
+    await api(`/api/templates/${template.id}/apply`, "POST", {
+      workspaceId: wsId,
+      folderName: folderName.trim(),
+    });
+    mutateFolders();
+    mutateTasks();
+  };
+
+  const renameTemplate = async (template: Template) => {
+    const name = prompt("テンプレート名を変更", template.name);
+    if (!name || !name.trim() || name.trim() === template.name) return;
+    await api(`/api/templates/${template.id}`, "PATCH", { name: name.trim() });
+    mutateTemplates();
+  };
+
+  const deleteTemplate = async (id: string) => {
+    await api(`/api/templates/${id}`, "DELETE");
+    mutateTemplates();
+  };
+
   const isFavorite = (type: "folder" | "tag" | "filter", ref: string) =>
     (settings?.favorites ?? []).some(
       (f) => favoriteKey(f.type, f.ref) === favoriteKey(type, ref)
@@ -587,6 +621,11 @@ export default function App() {
           isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}
           onSelectFavorite={selectFavorite}
+          templates={templates}
+          onSaveFolderAsTemplate={saveFolderAsTemplate}
+          onApplyTemplate={applyTemplate}
+          onRenameTemplate={renameTemplate}
+          onDeleteTemplate={deleteTemplate}
         />
       </aside>
       {sidebarOpen && (

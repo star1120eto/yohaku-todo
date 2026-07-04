@@ -21,6 +21,7 @@ const EMPTY_DB: Database = {
   completions: [],
   activities: [],
   comments: [],
+  templates: [],
 };
 
 function load(): Database {

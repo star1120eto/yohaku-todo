@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { Folder, SavedFilter } from "@/lib/types";
+import type { Folder, SavedFilter, Template } from "@/lib/types";
 import type { ResolvedFavorite, WorkspaceWithMembers } from "@/hooks/useData";
 
 export type Filter =
@@ -89,6 +89,11 @@ export default function Sidebar({
   isFavorite,
   onToggleFavorite,
   onSelectFavorite,
+  templates,
+  onSaveFolderAsTemplate,
+  onApplyTemplate,
+  onRenameTemplate,
+  onDeleteTemplate,
 }: {
   workspaces: WorkspaceWithMembers[];
   currentWorkspaceId: string | null;
@@ -113,6 +118,11 @@ export default function Sidebar({
   isFavorite: (type: "folder" | "tag" | "filter", ref: string) => boolean;
   onToggleFavorite: (type: "folder" | "tag" | "filter", ref: string) => void;
   onSelectFavorite: (f: ResolvedFavorite) => void;
+  templates: Template[];
+  onSaveFolderAsTemplate: (folderId: string, folderName: string) => void;
+  onApplyTemplate: (template: Template) => void;
+  onRenameTemplate: (template: Template) => void;
+  onDeleteTemplate: (id: string) => void;
 }) {
   const [newFolder, setNewFolder] = useState("");
   const [addingFolder, setAddingFolder] = useState(false);
@@ -237,6 +247,13 @@ export default function Sidebar({
                       onClick={() => onToggleFavorite("folder", `${currentWorkspaceId}:${f.id}`)}
                     />
                     <button
+                      onClick={() => onSaveFolderAsTemplate(f.id, f.name)}
+                      className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="テンプレートとして保存"
+                    >
+                      📄
+                    </button>
+                    <button
                       onClick={() => {
                         if (confirm(`フォルダ「${f.name}」を削除しますか？（中のタスクは残ります）`)) {
                           onDeleteFolder(f.id);
@@ -322,6 +339,46 @@ export default function Sidebar({
           ))}
         </ul>
       </div>
+
+      {templates.length > 0 && (
+        <div className="px-3 pb-4">
+          <div className="text-[11px] text-ink-faint px-3 pb-1.5">テンプレート</div>
+          <ul className="space-y-0.5">
+            {templates.map((t) => (
+              <li key={t.id}>
+                <NavButton
+                  active={false}
+                  onClick={() => onApplyTemplate(t)}
+                  trailing={
+                    <span className="flex">
+                      <button
+                        onClick={() => onRenameTemplate(t)}
+                        className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="名前を変更"
+                      >
+                        ✎
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`テンプレート「${t.name}」を削除しますか？`)) {
+                            onDeleteTemplate(t.id);
+                          }
+                        }}
+                        className="px-1.5 text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="削除"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  }
+                >
+                  📄 {t.name}
+                </NavButton>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {tags.length > 0 && (
         <div className="px-3 pb-4">
