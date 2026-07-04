@@ -2,6 +2,7 @@ import { updateDb } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
 import { nextOccurrence } from "@/lib/recurrence";
 import { notifyUserSlack } from "@/lib/slack";
+import { logActivity } from "@/lib/activity";
 
 function cleanDuration(v: unknown): number | null {
   return typeof v === "number" && Number.isInteger(v) && v >= 5 && v <= 1440
@@ -32,6 +33,15 @@ export async function PATCH(req: Request, { params }: Params) {
     if (!t) return null;
     const ws = db.workspaces.find((w) => w.id === t.workspaceId);
     if (!ws || !isMember(ws, user.id)) return null;
+
+    const before = {
+      title: t.title,
+      dueAt: t.dueAt,
+      priority: t.priority,
+      folderId: t.folderId,
+      tags: [...t.tags],
+      repeat: t.repeat,
+    };
 
     if (typeof body.title === "string" && body.title.trim()) {
       t.title = body.title.trim();
@@ -165,7 +175,34 @@ export async function PATCH(req: Request, { params }: Params) {
           db.completions = db.completions.filter((c) => c.taskId !== t.id);
         }
       }
+      logActivity(db, {
+        workspaceId: t.workspaceId,
+        taskId: t.id,
+        actorId: user.id,
+        type: body.completed ? "task.complete" : "task.reopen",
+        detail: body.completed
+          ? `「${t.title}」を完了`
+          : `「${t.title}」を未完了に戻す`,
+      });
     }
+
+    const changed: string[] = [];
+    if (before.title !== t.title) changed.push("タイトル");
+    if (before.dueAt !== t.dueAt) changed.push("期日");
+    if (before.priority !== t.priority) changed.push("優先度");
+    if (before.folderId !== t.folderId) changed.push("フォルダ");
+    if (JSON.stringify(before.tags) !== JSON.stringify(t.tags)) changed.push("タグ");
+    if (before.repeat !== t.repeat) changed.push("繰り返し");
+    if (changed.length) {
+      logActivity(db, {
+        workspaceId: t.workspaceId,
+        taskId: t.id,
+        actorId: user.id,
+        type: "task.update",
+        detail: `「${t.title}」の${changed.join("・")}を変更`,
+      });
+    }
+
     t.updatedAt = new Date().toISOString();
     return t;
   });
@@ -186,6 +223,13 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!ws || !isMember(ws, user.id)) return false;
     // 子タスクも同時に削除する
     db.tasks = db.tasks.filter((x) => x.id !== id && x.parentId !== id);
+    logActivity(db, {
+      workspaceId: t.workspaceId,
+      taskId: null,
+      actorId: user.id,
+      type: "task.delete",
+      detail: `「${t.title}」を削除`,
+    });
     return true;
   });
 

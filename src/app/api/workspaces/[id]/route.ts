@@ -1,5 +1,6 @@
 import { updateDb } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -17,12 +18,19 @@ export async function PATCH(req: Request, { params }: Params) {
     }
     // メンバーの削除(オーナーのみ)
     if (typeof body.removeMemberId === "string" && ws.ownerId === user.id) {
+      const removedName = db.users.find((u) => u.id === body.removeMemberId)?.name ?? "メンバー";
       ws.memberIds = ws.memberIds.filter((m) => m !== body.removeMemberId);
       for (const t of db.tasks) {
         if (t.workspaceId === ws.id && t.assigneeId === body.removeMemberId) {
           t.assigneeId = null;
         }
       }
+      logActivity(db, {
+        workspaceId: ws.id,
+        actorId: user.id,
+        type: "member.remove",
+        detail: `${removedName} を削除`,
+      });
     }
     // 自分が退出する
     if (body.leave === true && ws.ownerId !== user.id) {
@@ -32,6 +40,12 @@ export async function PATCH(req: Request, { params }: Params) {
           t.assigneeId = null;
         }
       }
+      logActivity(db, {
+        workspaceId: ws.id,
+        actorId: user.id,
+        type: "member.leave",
+        detail: `${user.name} が退出`,
+      });
     }
     return ws;
   });

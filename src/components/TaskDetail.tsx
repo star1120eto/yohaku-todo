@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { Folder, Section, Task, TaskLocation } from "@/lib/types";
-import { WEEKDAY_JP, formatRepeat } from "@/lib/format";
+import { WEEKDAY_JP, formatRelative, formatRepeat } from "@/lib/format";
 import { api } from "@/hooks/useData";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
 import Calendar from "./Calendar";
@@ -86,6 +86,10 @@ export default function TaskDetail({
   const [searching, setSearching] = useState(false);
   const [busy, setBusy] = useState(false);
   const [newSubtask, setNewSubtask] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState<
+    { id: string; actorName: string; detail: string; createdAt: string }[] | null
+  >(null);
 
   const parentTask = task.parentId
     ? allTasks.find((t) => t.id === task.parentId) ?? null
@@ -681,6 +685,38 @@ export default function TaskDetail({
           </form>
         </div>
       )}
+
+      <div className="mb-4">
+        <button
+          type="button"
+          onClick={async () => {
+            const next = !showHistory;
+            setShowHistory(next);
+            if (next && history === null) {
+              const res = await api(
+                `/api/activities?workspaceId=${task.workspaceId}&taskId=${task.id}`,
+                "GET"
+              );
+              setHistory(res.activities);
+            }
+          }}
+          className="text-xs text-ink-faint hover:text-ink transition-colors"
+        >
+          {showHistory ? "▾" : "▸"} 履歴
+        </button>
+        {showHistory && (
+          <ul className="mt-2 space-y-1.5">
+            {history === null && <li className="text-xs text-ink-faint">読み込み中…</li>}
+            {history?.length === 0 && <li className="text-xs text-ink-faint">履歴なし</li>}
+            {history?.map((h) => (
+              <li key={h.id} className="text-xs text-ink-soft">
+                <span className="text-ink-faint">{formatRelative(h.createdAt)}</span>{" "}
+                {h.actorName} が {h.detail}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <div className="flex items-center justify-between pt-2">
         <button

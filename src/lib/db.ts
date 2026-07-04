@@ -19,6 +19,7 @@ const EMPTY_DB: Database = {
   settings: [],
   savedFilters: [],
   completions: [],
+  activities: [],
 };
 
 function load(): Database {

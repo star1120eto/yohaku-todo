@@ -1,5 +1,6 @@
 import { updateDb } from "@/lib/db";
 import { currentUser, jsonError } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 import type { Workspace } from "@/lib/types";
 
 // 招待コードでワークスペースに参加する
@@ -22,6 +23,12 @@ export async function POST(req: Request) {
     }
     if (w.ownerId !== user.id && !w.memberIds.includes(user.id)) {
       w.memberIds.push(user.id);
+      logActivity(db, {
+        workspaceId: w.id,
+        actorId: user.id,
+        type: "member.join",
+        detail: `${user.name} が参加`,
+      });
     }
     return { ok: true, workspace: w };
   });

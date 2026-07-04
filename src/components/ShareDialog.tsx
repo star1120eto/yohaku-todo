@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { WorkspaceWithMembers } from "@/hooks/useData";
 import { api } from "@/hooks/useData";
+import { formatRelative } from "@/lib/format";
 import { GhostButton, Modal } from "./ui";
+
+interface ActivityEntry {
+  id: string;
+  actorName: string;
+  detail: string;
+  createdAt: string;
+}
 
 export default function ShareDialog({
   workspace,
@@ -17,7 +25,17 @@ export default function ShareDialog({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [tab, setTab] = useState<"members" | "activity">("members");
+  const [activities, setActivities] = useState<ActivityEntry[] | null>(null);
   const isOwner = workspace.ownerId === meId;
+
+  useEffect(() => {
+    if (tab === "activity" && activities === null) {
+      api(`/api/activities?workspaceId=${workspace.id}&limit=50`, "GET").then((res) =>
+        setActivities(res.activities)
+      );
+    }
+  }, [tab, activities, workspace.id]);
   const inviteUrl =
     typeof window !== "undefined"
       ? `${window.location.origin}/join/${workspace.inviteCode}`
@@ -48,35 +66,65 @@ export default function ShareDialog({
         <GhostButton onClick={copy}>{copied ? "コピー済み" : "コピー"}</GhostButton>
       </div>
 
-      <h3 className="text-xs text-ink-soft mb-2">メンバー</h3>
-      <ul className="divide-y divide-line/70 mb-6">
-        {workspace.members.map((m) => (
-          <li key={m.id} className="flex items-center gap-3 py-2.5">
-            <span className="w-7 h-7 rounded-full bg-accent-soft text-accent flex items-center justify-center text-xs shrink-0">
-              {m.name.slice(0, 1)}
-            </span>
-            <span className="text-sm flex-1 truncate">
-              {m.name}
-              {m.id === meId && <span className="text-ink-faint">（自分）</span>}
-            </span>
-            {m.id === workspace.ownerId ? (
-              <span className="text-[11px] text-ink-faint">オーナー</span>
-            ) : isOwner ? (
-              <button
-                className="text-xs text-danger hover:underline"
-                onClick={async () => {
-                  await api(`/api/workspaces/${workspace.id}`, "PATCH", {
-                    removeMemberId: m.id,
-                  });
-                  onChanged();
-                }}
-              >
-                削除
-              </button>
-            ) : null}
-          </li>
+      <div className="flex rounded-full border border-line p-0.5 mb-4 text-sm">
+        {(["members", "activity"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`flex-1 rounded-full py-1.5 transition-colors ${
+              tab === t ? "bg-ink text-paper" : "text-ink-soft"
+            }`}
+          >
+            {t === "members" ? "メンバー" : "アクティビティ"}
+          </button>
         ))}
-      </ul>
+      </div>
+
+      {tab === "members" ? (
+        <ul className="divide-y divide-line/70 mb-6">
+          {workspace.members.map((m) => (
+            <li key={m.id} className="flex items-center gap-3 py-2.5">
+              <span className="w-7 h-7 rounded-full bg-accent-soft text-accent flex items-center justify-center text-xs shrink-0">
+                {m.name.slice(0, 1)}
+              </span>
+              <span className="text-sm flex-1 truncate">
+                {m.name}
+                {m.id === meId && <span className="text-ink-faint">（自分）</span>}
+              </span>
+              {m.id === workspace.ownerId ? (
+                <span className="text-[11px] text-ink-faint">オーナー</span>
+              ) : isOwner ? (
+                <button
+                  className="text-xs text-danger hover:underline"
+                  onClick={async () => {
+                    await api(`/api/workspaces/${workspace.id}`, "PATCH", {
+                      removeMemberId: m.id,
+                    });
+                    onChanged();
+                  }}
+                >
+                  削除
+                </button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul className="divide-y divide-line/70 mb-6 max-h-72 overflow-y-auto">
+          {activities === null && (
+            <li className="py-3 text-xs text-ink-faint">読み込み中…</li>
+          )}
+          {activities?.length === 0 && (
+            <li className="py-3 text-xs text-ink-faint">まだ活動はありません</li>
+          )}
+          {activities?.map((a) => (
+            <li key={a.id} className="py-2.5 text-xs text-ink-soft">
+              <span className="text-ink-faint">{formatRelative(a.createdAt)}</span>{" "}
+              {a.actorName} が {a.detail}
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="flex justify-end gap-2">
         {!isOwner && (
