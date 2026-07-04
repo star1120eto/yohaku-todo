@@ -14,6 +14,7 @@ const EMPTY_DB: Database = {
   users: [],
   workspaces: [],
   folders: [],
+  sections: [],
   tasks: [],
   settings: [],
   savedFilters: [],

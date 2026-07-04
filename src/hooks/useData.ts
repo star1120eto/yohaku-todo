@@ -4,6 +4,7 @@ import useSWR from "swr";
 import type {
   Folder,
   SavedFilter,
+  Section,
   Task,
   User,
   UserSettings,
@@ -60,6 +61,14 @@ export function useFolders(workspaceId: string | null) {
     fetcher
   );
   return { folders: data?.folders ?? [], mutate };
+}
+
+export function useSections(folderId: string | null) {
+  const { data, mutate } = useSWR<{ sections: Section[] }>(
+    folderId ? `/api/sections?folderId=${folderId}` : null,
+    fetcher
+  );
+  return { sections: data?.sections ?? [], mutate };
 }
 
 export function useTasks(workspaceId: string | null) {

@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import type { Folder, Task, TaskLocation } from "@/lib/types";
+import { useEffect, useState } from "react";
+import type { Folder, Section, Task, TaskLocation } from "@/lib/types";
 import { WEEKDAY_JP, formatRepeat } from "@/lib/format";
 import { api } from "@/hooks/useData";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
@@ -54,6 +54,8 @@ export default function TaskDetail({
   const [priority, setPriority] = useState(task.priority);
   const [tags, setTags] = useState(task.tags.join(", "));
   const [folderId, setFolderId] = useState(task.folderId ?? "");
+  const [sectionId, setSectionId] = useState(task.sectionId ?? "");
+  const [sections, setSections] = useState<Section[]>([]);
   const [assigneeId, setAssigneeId] = useState(task.assigneeId ?? "");
   const [dueDate, setDueDate] = useState<Date | null>(
     initDue ? new Date(initDue.getFullYear(), initDue.getMonth(), initDue.getDate()) : null
@@ -91,6 +93,24 @@ export default function TaskDetail({
   const subtasks = allTasks
     .filter((t) => t.parentId === task.id)
     .sort((a, b) => a.order - b.order);
+
+  // フォルダに応じてセクション候補を読み込む。フォルダを変更したら選択中のセクションは解除する
+  useEffect(() => {
+    if (!folderId) {
+      setSections([]);
+      setSectionId("");
+      return;
+    }
+    let cancelled = false;
+    api(`/api/sections?folderId=${folderId}`, "GET").then((res) => {
+      if (!cancelled) setSections(res.sections);
+    });
+    if (folderId !== task.folderId) setSectionId("");
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [folderId]);
 
   const addSubtask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -197,6 +217,7 @@ export default function TaskDetail({
           .map((t) => t.trim())
           .filter(Boolean),
         folderId: folderId || null,
+        sectionId: sectionId || null,
         assigneeId: assigneeId || null,
         durationMinutes: durationMinutes || null,
         dueAt,
@@ -432,6 +453,23 @@ export default function TaskDetail({
           </Field>
         )}
       </div>
+
+      {folderId && sections.length > 0 && (
+        <Field label="セクション">
+          <select
+            className={inputClass}
+            value={sectionId}
+            onChange={(e) => setSectionId(e.target.value)}
+          >
+            <option value="">なし</option>
+            {sections.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <Field label="タグ（カンマ区切り）">
         <input

@@ -51,6 +51,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (ws.private) return "private" as const;
     db.workspaces = db.workspaces.filter((w) => w.id !== id);
     db.folders = db.folders.filter((f) => f.workspaceId !== id);
+    db.sections = db.sections.filter((s) => s.workspaceId !== id);
     db.tasks = db.tasks.filter((t) => t.workspaceId !== id);
     return "ok" as const;
   });
