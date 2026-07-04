@@ -74,12 +74,12 @@ export function useSections(folderId: string | null) {
 }
 
 export function useTasks(workspaceId: string | null) {
-  const { data, mutate } = useSWR<{ tasks: Task[] }>(
+  const { data, mutate } = useSWR<{ tasks: Task[]; commentCounts: Record<string, number> }>(
     workspaceId ? `/api/tasks?workspaceId=${workspaceId}` : null,
     fetcher,
     { refreshInterval: 15000 } // 共有ワークスペースの変更を拾う
   );
-  return { tasks: data?.tasks ?? [], mutate };
+  return { tasks: data?.tasks ?? [], commentCounts: data?.commentCounts ?? {}, mutate };
 }
 
 export interface ResolvedFavorite {
