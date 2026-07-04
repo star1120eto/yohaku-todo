@@ -78,9 +78,7 @@ export default function Sidebar({
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 pt-1 pb-4">
-        <h1 className="font-serif text-2xl tracking-tight px-3 pb-5">
-          Yohaku<span className="text-ink-faint font-normal text-lg"> ToDo</span>
-        </h1>
+        <h1 className="font-serif text-2xl tracking-[0.14em] px-3 pb-5">よはく</h1>
 
         <div className="text-[11px] text-ink-faint px-3 pb-1.5 flex items-center justify-between">
           <span>ワークスペース</span>

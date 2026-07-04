@@ -61,7 +61,7 @@ export default function SettingsDialog({
     try {
       await persist(); // サーバーが保存済みWebhookを参照するため先に保存
       await api("/api/notify/slack", "POST", {
-        text: "Yohaku ToDo のテスト通知です ✅",
+        text: "よはく のテスト通知です ✅",
       });
       setSlackMsg("送信しました。Slackをご確認ください。");
     } catch (err) {

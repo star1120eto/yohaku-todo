@@ -21,7 +21,7 @@ const serif = Zen_Old_Mincho({
 });
 
 export const metadata: Metadata = {
-  title: "Yohaku ToDo",
+  title: "よはく",
   description: "余白を大切にする、静かなToDoアプリ",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Yohaku ToDo",
+    title: "よはく",
   },
 };
 

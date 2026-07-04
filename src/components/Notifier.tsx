@@ -52,7 +52,7 @@ export default function Notifier({
         const key = `yohaku:notified:${t.id}:${t.dueAt}`;
         if (localStorage.getItem(key)) continue;
         localStorage.setItem(key, "1");
-        notify("Yohaku ToDo", `「${t.title}」の時間です`);
+        notify("よはく", `「${t.title}」の時間です`);
         if (slackRef.current) sendSlack(`⏰ 「${t.title}」の時間です`);
       }
     };
@@ -83,7 +83,7 @@ export default function Notifier({
             if (!localStorage.getItem(key)) {
               localStorage.setItem(key, "1");
               const msg = `「${t.location.label || "指定の場所"}」の近くです: ${t.title}`;
-              notify("Yohaku ToDo", msg);
+              notify("よはく", msg);
               if (slackRef.current) sendSlack(`📍 ${msg}`);
             }
           } else if (d > t.location.radius * 1.5) {

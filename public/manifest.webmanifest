@@ -1,6 +1,6 @@
 {
-  "name": "Yohaku ToDo",
-  "short_name": "Yohaku",
+  "name": "よはく",
+  "short_name": "よはく",
   "description": "余白を大切にする、静かなToDoアプリ",
   "start_url": "/",
   "display": "standalone",
