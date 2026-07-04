@@ -27,6 +27,7 @@ import ShareDialog from "./ShareDialog";
 import SettingsDialog from "./SettingsDialog";
 import FilterDialog from "./FilterDialog";
 import Board from "./Board";
+import MonthView from "./MonthView";
 import Notifier from "./Notifier";
 import { applyTheme } from "@/lib/theme";
 import { Field, Modal, PrimaryButton, inputClass } from "./ui";
@@ -64,6 +65,7 @@ export default function App() {
   const [addingSection, setAddingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
   const [boardMode, setBoardMode] = useState(false);
+  const [calendarMode, setCalendarMode] = useState(false);
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -383,6 +385,38 @@ export default function App() {
     mutateTasks();
   };
 
+  const addTaskOnDate = async (date: Date, raw: string) => {
+    if (!wsId) return;
+    const parsed = parseTitle(raw, prefixes);
+    let folderId: string | null = filter.type === "folder" ? filter.folderId : null;
+    if (parsed.folderName) {
+      const res = await api("/api/folders", "POST", { workspaceId: wsId, name: parsed.folderName });
+      folderId = res.folder.id;
+      mutateFolders();
+    }
+    const tags = [...parsed.tags];
+    if (filter.type === "tag" && !tags.includes(filter.tag)) tags.push(filter.tag);
+    const dueAt = new Date(date);
+    if (parsed.dueAt) {
+      dueAt.setHours(parsed.dueAt.getHours(), parsed.dueAt.getMinutes(), 0, 0);
+    } else {
+      dueAt.setHours(9, 0, 0, 0);
+    }
+    await api("/api/tasks", "POST", {
+      workspaceId: wsId,
+      title: parsed.title || raw.trim(),
+      folderId,
+      priority: parsed.priority,
+      tags,
+      dueAt: dueAt.toISOString(),
+      repeat: parsed.repeat,
+      weekday: parsed.weekday,
+      weekOfMonth: parsed.weekOfMonth,
+      durationMinutes: parsed.durationMinutes,
+    });
+    mutateTasks();
+  };
+
   const createSection = async (name: string) => {
     if (!currentFolderId || !name.trim()) return;
     await api("/api/sections", "POST", { folderId: currentFolderId, name: name.trim() });
@@ -569,7 +603,7 @@ export default function App() {
               <h2 className="text-2xl font-normal tracking-tight flex-1">
                 {filterTitle}
               </h2>
-              {!searchOpen && filter.type === "folder" && sections.length > 0 && (
+              {!searchOpen && !calendarMode && filter.type === "folder" && sections.length > 0 && (
                 <button
                   onClick={toggleBoardView}
                   className="text-xs text-ink-faint hover:text-ink transition-colors"
@@ -577,12 +611,20 @@ export default function App() {
                   {boardMode ? "☰ リスト" : "▦ ボード"}
                 </button>
               )}
-              {!searchOpen && filter.type === "folder" && (
+              {!searchOpen && !calendarMode && filter.type === "folder" && (
                 <button
                   onClick={() => setAddingSection(true)}
                   className="text-xs text-ink-faint hover:text-ink transition-colors"
                 >
                   ＋ セクション
+                </button>
+              )}
+              {!searchOpen && (
+                <button
+                  onClick={() => setCalendarMode((v) => !v)}
+                  className="text-xs text-ink-faint hover:text-ink transition-colors"
+                >
+                  {calendarMode ? "☰ リスト" : "🗓 カレンダー"}
                 </button>
               )}
               {!searchOpen && (
@@ -661,9 +703,16 @@ export default function App() {
               </div>
             )}
 
-            {!searchOpen && <Composer prefixes={prefixes} onSubmit={addTask} />}
+            {!searchOpen && !calendarMode && <Composer prefixes={prefixes} onSubmit={addTask} />}
 
-            {searchOpen && crossWorkspace ? (
+            {calendarMode ? (
+              <MonthView
+                tasks={visibleTasks}
+                onToggle={toggleTask}
+                onOpen={setOpenTask}
+                onAddTask={addTaskOnDate}
+              />
+            ) : searchOpen && crossWorkspace ? (
               <SearchResults
                 loading={crossLoading}
                 results={crossResults}
