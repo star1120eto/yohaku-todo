@@ -45,6 +45,7 @@ export interface Task {
   id: string;
   workspaceId: string;
   folderId: string | null;
+  parentId: string | null; // 親タスクID。1階層のみ(親自身は parentId を持てない)
   title: string;
   note: string;
   completed: boolean;

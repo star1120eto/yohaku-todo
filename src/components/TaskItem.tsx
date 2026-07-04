@@ -8,15 +8,25 @@ export default function TaskItem({
   task,
   onToggle,
   onOpen,
+  depth = 0,
+  childCount = 0,
+  completedChildCount = 0,
 }: {
   task: Task;
   onToggle: (task: Task) => void;
   onOpen: (task: Task) => void;
+  depth?: 0 | 1;
+  childCount?: number;
+  completedChildCount?: number;
 }) {
   const overdue = !task.completed && task.dueAt && isOverdue(task.dueAt);
 
   return (
-    <li className="group flex items-start gap-3 px-2 py-3 border-b border-line/70 last:border-b-0 hover:bg-card/70 rounded-lg transition-colors">
+    <li
+      className={`group flex items-start gap-3 px-2 py-3 border-b border-line/70 last:border-b-0 hover:bg-card/70 rounded-lg transition-colors ${
+        depth > 0 ? "pl-8" : ""
+      }`}
+    >
       <button
         onClick={() => onToggle(task)}
         aria-label={task.completed ? "未完了に戻す" : "完了にする"}
@@ -46,6 +56,11 @@ export default function TaskItem({
           >
             {task.title}
           </span>
+          {childCount > 0 && (
+            <span className="text-[11px] text-ink-faint shrink-0">
+              {completedChildCount}/{childCount}
+            </span>
+          )}
         </div>
         {(task.dueAt || task.tags.length > 0 || task.repeat || task.location) && (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] text-ink-faint">
