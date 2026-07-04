@@ -11,6 +11,7 @@ export default function TaskItem({
   depth = 0,
   childCount = 0,
   completedChildCount = 0,
+  assigneeName,
 }: {
   task: Task;
   onToggle: (task: Task) => void;
@@ -18,6 +19,7 @@ export default function TaskItem({
   depth?: 0 | 1;
   childCount?: number;
   completedChildCount?: number;
+  assigneeName?: string;
 }) {
   const overdue = !task.completed && task.dueAt && isOverdue(task.dueAt);
 
@@ -59,6 +61,14 @@ export default function TaskItem({
           {childCount > 0 && (
             <span className="text-[11px] text-ink-faint shrink-0">
               {completedChildCount}/{childCount}
+            </span>
+          )}
+          {assigneeName && (
+            <span
+              title={assigneeName}
+              className="w-5 h-5 shrink-0 rounded-full bg-accent-soft text-accent flex items-center justify-center text-[10px] ml-auto"
+            >
+              {assigneeName.slice(0, 1)}
             </span>
           )}
         </div>
