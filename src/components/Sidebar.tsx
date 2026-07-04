@@ -8,7 +8,8 @@ export type Filter =
   | { type: "all" }
   | { type: "today" }
   | { type: "folder"; folderId: string }
-  | { type: "tag"; tag: string };
+  | { type: "tag"; tag: string }
+  | { type: "search"; q: string };
 
 function NavButton({
   active,
