@@ -67,6 +67,15 @@ export interface Task {
   order: number;
 }
 
+export interface SavedFilter {
+  id: string;
+  userId: string; // フィルターは個人所有(ワークスペース非依存)
+  name: string;
+  query: string; // 例: "priority:高 tag:仕事 due:today"
+  order: number;
+  createdAt: string;
+}
+
 export interface ParsePrefixes {
   tag: string; // 例: "#"
   priority: string; // 例: "!"
@@ -117,4 +126,5 @@ export interface Database {
   folders: Folder[];
   tasks: Task[];
   settings: UserSettings[];
+  savedFilters: SavedFilter[];
 }
