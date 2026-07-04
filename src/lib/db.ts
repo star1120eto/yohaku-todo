@@ -17,6 +17,7 @@ const EMPTY_DB: Database = {
   savedFilters: [],
   completions: [],
   activities: [],
+  comments: [],
 };
 
 let testD1: D1Database | undefined;
@@ -120,4 +121,9 @@ export function newId(): string {
 
 export function newInviteCode(): string {
   return randomHex(5);
+}
+
+/** コメント添付ファイルの保存先ディレクトリ(data/ 配下。db.json と同じ実体の根の下)。 */
+export function uploadsDir(): string {
+  return path.join(DATA_DIR, "uploads");
 }

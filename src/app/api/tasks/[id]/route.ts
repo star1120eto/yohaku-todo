@@ -1,4 +1,6 @@
-import { updateDb } from "@/lib/db";
+import fs from "fs";
+import path from "path";
+import { updateDb, uploadsDir } from "@/lib/db";
 import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { nextOccurrence } from "@/lib/recurrence";
 import { notifyUserSlack } from "@/lib/slack";
@@ -234,7 +236,23 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!ws || !isMember(ws, user.id)) return "notfound";
     if (!canEdit(ws, user.id)) return "forbidden";
     // 子タスクも同時に削除する
-    db.tasks = db.tasks.filter((x) => x.id !== id && x.parentId !== id);
+    const childIds = db.tasks.filter((x) => x.parentId === id).map((x) => x.id);
+    const removedIds = new Set([id, ...childIds]);
+    db.tasks = db.tasks.filter((x) => !removedIds.has(x.id));
+
+    // コメント・添付ファイルの実体も削除する
+    const removedComments = db.comments.filter((c) => removedIds.has(c.taskId));
+    for (const c of removedComments) {
+      for (const att of c.attachments) {
+        try {
+          fs.unlinkSync(path.join(uploadsDir(), att.path));
+        } catch {
+          // 実体が既に無くても無視する
+        }
+      }
+    }
+    db.comments = db.comments.filter((c) => !removedIds.has(c.taskId));
+
     logActivity(db, {
       workspaceId: t.workspaceId,
       taskId: null,

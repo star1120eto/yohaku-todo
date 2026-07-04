@@ -33,7 +33,14 @@ export async function GET(req: Request) {
   const tasks = db.tasks
     .filter((t) => t.workspaceId === workspaceId)
     .sort((a, b) => a.order - b.order);
-  return Response.json({ tasks });
+
+  const commentCounts: Record<string, number> = {};
+  for (const c of db.comments) {
+    if (c.workspaceId !== workspaceId) continue;
+    commentCounts[c.taskId] = (commentCounts[c.taskId] ?? 0) + 1;
+  }
+
+  return Response.json({ tasks, commentCounts });
 }
 
 export async function POST(req: Request) {
