@@ -1,6 +1,4 @@
-import fs from "fs";
-import path from "path";
-import { updateDb, uploadsDir } from "@/lib/db";
+import { updateDb } from "@/lib/db";
 import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { nextOccurrence } from "@/lib/recurrence";
 import { notifyUserSlack } from "@/lib/slack";
@@ -240,17 +238,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     const removedIds = new Set([id, ...childIds]);
     db.tasks = db.tasks.filter((x) => !removedIds.has(x.id));
 
-    // コメント・添付ファイルの実体も削除する
-    const removedComments = db.comments.filter((c) => removedIds.has(c.taskId));
-    for (const c of removedComments) {
-      for (const att of c.attachments) {
-        try {
-          fs.unlinkSync(path.join(uploadsDir(), att.path));
-        } catch {
-          // 実体が既に無くても無視する
-        }
-      }
-    }
+    // コメント(添付ファイルはコメント内にbase64で保持しているため、コメントごと消せば十分)
     db.comments = db.comments.filter((c) => !removedIds.has(c.taskId));
 
     logActivity(db, {

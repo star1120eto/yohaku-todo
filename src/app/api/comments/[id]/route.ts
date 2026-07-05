@@ -1,6 +1,4 @@
-import fs from "fs";
-import path from "path";
-import { updateDb, uploadsDir } from "@/lib/db";
+import { updateDb } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
 
 type Params = { params: Promise<{ id: string }> };
@@ -11,20 +9,13 @@ export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
 
   type Result = "notfound" | "forbidden" | "ok";
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const c = db.comments.find((x) => x.id === id);
     if (!c) return "notfound";
     const ws = db.workspaces.find((w) => w.id === c.workspaceId);
     if (!ws || !isMember(ws, user.id)) return "notfound";
     if (c.authorId !== user.id && ws.ownerId !== user.id) return "forbidden";
 
-    for (const att of c.attachments) {
-      try {
-        fs.unlinkSync(path.join(uploadsDir(), att.path));
-      } catch {
-        // 実体が既に無くても無視する
-      }
-    }
     db.comments = db.comments.filter((x) => x.id !== id);
     return "ok";
   });
