@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     | { ok: false; error: string; status: number }
     | { ok: true; workspace: Workspace };
 
-  const result = updateDb<JoinResult>((db) => {
+  const result = await updateDb<JoinResult>((db) => {
     const w = db.workspaces.find((x) => x.inviteCode === code);
     if (!w) return { ok: false, error: "招待コードが正しくありません", status: 404 };
     if (w.private) {

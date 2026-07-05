@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
   const now = new Date().toISOString();
   type RegResult = { ok: false } | { ok: true; user: User };
-  const result = updateDb<RegResult>((db) => {
+  const result = await updateDb<RegResult>(async (db) => {
     if (db.users.some((u) => u.email === email)) {
       return { ok: false };
     }
@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       id: newId(),
       name,
       email,
-      passwordHash: hashPassword(password),
+      passwordHash: await hashPassword(password),
       createdAt: now,
     };
     db.users.push(u);

@@ -1,7 +1,5 @@
-import { createHmac } from "crypto";
-import { isIP } from "net";
-import { updateDb, type readDb } from "./db";
-import type { Task, WebhookEvent } from "./types";
+import { updateDb } from "./db";
+import type { Database, Task, WebhookEvent } from "./types";
 
 // プライベート/ループバックアドレス宛のWebhookは登録・送信のどちらも拒否する簡易SSRFガード。
 // (ドメイン名はDNS解決までは検証しないため、DNSリバインディングへの完全な防御ではない)
@@ -21,6 +19,11 @@ function isPrivateIp(ip: string): boolean {
   return lower.startsWith("fc") || lower.startsWith("fd") || lower.startsWith("fe80");
 }
 
+// ホスト名がIPアドレスの直書きかどうかの簡易判定(ホスト名に ":" は含まれないため)
+function isIpLiteral(host: string): boolean {
+  return /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host) || host.includes(":");
+}
+
 export function isSafeWebhookUrl(urlStr: string): boolean {
   let u: URL;
   try {
@@ -31,7 +34,7 @@ export function isSafeWebhookUrl(urlStr: string): boolean {
   if (u.protocol !== "https:" && u.protocol !== "http:") return false;
   const host = u.hostname.toLowerCase();
   if (host === "localhost" || host.endsWith(".local")) return false;
-  if (isIP(host)) return !isPrivateIp(host);
+  if (isIpLiteral(host)) return !isPrivateIp(host);
   return true;
 }
 
@@ -47,9 +50,21 @@ function taskPayload(task: Task) {
   };
 }
 
+async function hmacSha256Hex(secret: string, body: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(body));
+  return Array.from(new Uint8Array(signature), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 // マッチするWebhookへイベントを配信する(ベストエフォート、失敗しても呼び出し元は止めない)。
 export async function dispatchWebhooks(
-  db: ReturnType<typeof readDb>,
+  db: Database,
   workspaceId: string,
   event: WebhookEvent,
   task: Task
@@ -68,7 +83,7 @@ export async function dispatchWebhooks(
   await Promise.all(
     targets.map(async (w) => {
       if (!isSafeWebhookUrl(w.url)) return;
-      const signature = createHmac("sha256", w.secret).update(body).digest("hex");
+      const signature = await hmacSha256Hex(w.secret, body);
       let status: number | null = null;
       try {
         const res = await fetch(w.url, {
@@ -84,7 +99,7 @@ export async function dispatchWebhooks(
       } catch {
         status = null;
       }
-      updateDb((d) => {
+      await updateDb((d) => {
         const wh = d.webhooks.find((x) => x.id === w.id);
         if (wh) {
           wh.lastStatus = status;

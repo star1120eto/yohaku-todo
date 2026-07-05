@@ -1,5 +1,4 @@
-import { randomBytes } from "crypto";
-import { readDb, updateDb, newId } from "@/lib/db";
+import { readDb, updateDb, newId, randomHex } from "@/lib/db";
 import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { isSafeWebhookUrl } from "@/lib/webhook";
 import { WEBHOOK_EVENTS, type Webhook, type WebhookEvent } from "@/lib/types";
@@ -8,7 +7,7 @@ export async function GET(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
   const workspaceId = new URL(req.url).searchParams.get("workspaceId") ?? "";
-  const db = readDb();
+  const db = await readDb();
   const ws = db.workspaces.find((w) => w.id === workspaceId);
   if (!ws || !isMember(ws, user.id)) {
     return jsonError("ワークスペースが見つかりません", 404);
@@ -38,7 +37,7 @@ export async function POST(req: Request) {
   if (!events.length) return jsonError("通知するイベントを選択してください", 400);
 
   type Result = "notfound" | "forbidden" | Webhook;
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
     if (!ws || !isMember(ws, user.id)) return "notfound";
     if (!canEdit(ws, user.id)) return "forbidden";
@@ -47,7 +46,7 @@ export async function POST(req: Request) {
       userId: user.id,
       workspaceId,
       url,
-      secret: randomBytes(16).toString("hex"),
+      secret: randomHex(16),
       events,
       createdAt: new Date().toISOString(),
       lastStatus: null,

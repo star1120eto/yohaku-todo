@@ -27,7 +27,7 @@ export async function GET(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
   const workspaceId = new URL(req.url).searchParams.get("workspaceId") ?? "";
-  const db = readDb();
+  const db = await readDb();
   const ws = db.workspaces.find((w) => w.id === workspaceId);
   if (!ws || !isMember(ws, user.id)) {
     return jsonError("ワークスペースが見つかりません", 404);
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
 
   const now = new Date().toISOString();
   type Result = "notfound" | "forbidden" | Task;
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
     if (!ws || !isMember(ws, user.id)) return "notfound";
     if (!canEdit(ws, user.id)) return "forbidden";
@@ -143,6 +143,8 @@ export async function POST(req: Request) {
   if (result === "notfound") return jsonError("ワークスペースが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では追加できません", 403);
   syncTaskToGoogle(user.id, result).catch(() => {});
-  dispatchWebhooks(readDb(), result.workspaceId, "task.create", result).catch(() => {});
+  readDb()
+    .then((db) => dispatchWebhooks(db, result.workspaceId, "task.create", result))
+    .catch(() => {});
   return Response.json({ task: result });
 }

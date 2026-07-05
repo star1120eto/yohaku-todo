@@ -11,7 +11,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const name = typeof body.name === "string" ? body.name.trim() : "";
   if (!name) return jsonError("テンプレート名を入力してください", 400);
 
-  const ok = updateDb((db) => {
+  const ok = await updateDb((db) => {
     const t = db.templates.find((x) => x.id === id && x.ownerId === user.id);
     if (!t) return false;
     t.name = name;
@@ -26,11 +26,11 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  const db = readDb();
+  const db = await readDb();
   const exists = db.templates.some((t) => t.id === id && t.ownerId === user.id);
   if (!exists) return jsonError("テンプレートが見つかりません", 404);
 
-  updateDb((d) => {
+  await updateDb((d) => {
     d.templates = d.templates.filter((t) => t.id !== id);
   });
   return Response.json({ ok: true });

@@ -4,7 +4,7 @@ import { currentUser, isMember, jsonError, roleOf } from "@/lib/auth";
 export async function GET() {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
-  const db = readDb();
+  const db = await readDb();
   const workspaces = db.workspaces
     .filter((w) => isMember(w, user.id))
     .map((w) => ({
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   const name = String(body.name ?? "").trim();
   if (!name) return jsonError("ワークスペース名を入力してください", 400);
 
-  const ws = updateDb((db) => {
+  const ws = await updateDb((db) => {
     const w = {
       id: newId(),
       name,

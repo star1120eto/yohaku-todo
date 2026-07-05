@@ -22,7 +22,7 @@ export async function POST(req: Request) {
   }
   if (!subject) return jsonError("件名(subject)がありません", 400);
 
-  const db = readDb();
+  const db = await readDb();
   const settings = db.settings.find((s) => s.inboundToken && s.inboundToken === token);
   if (!settings) return jsonError("トークンが無効です", 401);
   const workspace = db.workspaces.find(
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     order: 0,
   };
 
-  updateDb((d) => {
+  await updateDb((d) => {
     task.order = d.tasks.filter((x) => x.workspaceId === workspace.id).length;
     d.tasks.push(task);
     logActivity(d, {

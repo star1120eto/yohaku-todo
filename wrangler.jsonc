@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "main": ".open-next/worker.js",
+  "name": "yohaku-todo",
+  "compatibility_date": "2025-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "yohaku-todo-db",
+      // `npx wrangler d1 create yohaku-todo-db` を実行して発行された ID に置き換える
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+    }
+  ]
+}

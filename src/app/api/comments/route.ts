@@ -1,9 +1,8 @@
-import fs from "fs";
-import path from "path";
-import { readDb, updateDb, newId, uploadsDir } from "@/lib/db";
+import { readDb, updateDb, newId } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { notifyUserSlack } from "@/lib/slack";
+import { arrayBufferToBase64 } from "@/lib/base64";
 import type { Attachment } from "@/lib/types";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -14,7 +13,7 @@ export async function GET(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
   const taskId = new URL(req.url).searchParams.get("taskId") ?? "";
-  const db = readDb();
+  const db = await readDb();
   const task = db.tasks.find((t) => t.id === taskId);
   const ws = task && db.workspaces.find((w) => w.id === task.workspaceId);
   if (!task || !ws || !isMember(ws, user.id)) {
@@ -28,10 +27,6 @@ export async function GET(req: Request) {
       authorName: db.users.find((u) => u.id === c.authorId)?.name ?? "(不明)",
     }));
   return Response.json({ comments });
-}
-
-function sanitizeFilename(name: string): string {
-  return path.basename(name).replace(/[^\w.\-ぁ-んァ-ヶ一-龠ー]/g, "_").slice(0, 100) || "file";
 }
 
 export async function POST(req: Request) {
@@ -60,36 +55,27 @@ export async function POST(req: Request) {
     }
   }
 
-  const db = readDb();
+  const db = await readDb();
   const task = db.tasks.find((t) => t.id === taskId);
   const ws = task && db.workspaces.find((w) => w.id === task.workspaceId);
   if (!task || !ws || !isMember(ws, user.id)) {
     return jsonError("タスクが見つかりません", 404);
   }
 
-  const commentId = newId();
   const attachments: Attachment[] = [];
-  if (files.length > 0) {
-    const dir = path.join(uploadsDir(), taskId);
-    fs.mkdirSync(dir, { recursive: true });
-    for (const f of files) {
-      const attId = newId();
-      const filename = `${attId}-${sanitizeFilename(f.name)}`;
-      const buf = Buffer.from(await f.arrayBuffer());
-      fs.writeFileSync(path.join(dir, filename), buf);
-      attachments.push({
-        id: attId,
-        name: f.name,
-        size: f.size,
-        mime: f.type || "application/octet-stream",
-        path: path.join(taskId, filename),
-      });
-    }
+  for (const f of files) {
+    attachments.push({
+      id: newId(),
+      name: f.name,
+      size: f.size,
+      mime: f.type || "application/octet-stream",
+      data: arrayBufferToBase64(await f.arrayBuffer()),
+    });
   }
 
-  const comment = updateDb((db2) => {
+  const comment = await updateDb((db2) => {
     const c = {
-      id: commentId,
+      id: newId(),
       taskId,
       workspaceId: task.workspaceId,
       authorId: user.id,

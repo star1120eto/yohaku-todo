@@ -11,7 +11,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const body = await req.json().catch(() => ({}));
 
   type Result = "notfound" | "forbidden" | Section;
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const s = db.sections.find((x) => x.id === id);
     if (!s) return "notfound";
     const ws = db.workspaces.find((w) => w.id === s.workspaceId);
@@ -35,7 +35,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
 
   type Result = "notfound" | "forbidden" | "ok";
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const s = db.sections.find((x) => x.id === id);
     if (!s) return "notfound";
     const ws = db.workspaces.find((w) => w.id === s.workspaceId);

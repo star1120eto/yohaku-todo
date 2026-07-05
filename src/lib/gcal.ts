@@ -79,12 +79,13 @@ async function validAccessToken(account: GoogleAccount): Promise<string | null> 
     return decryptSecret(account.accessToken);
   }
   try {
-    const refreshToken = decryptSecret(account.refreshToken);
+    const refreshToken = await decryptSecret(account.refreshToken);
     const { accessToken, expiresAt } = await refreshAccessToken(refreshToken);
-    updateDb((db) => {
+    const encAccessToken = await encryptSecret(accessToken);
+    await updateDb((db) => {
       const acc = db.googleAccounts.find((a) => a.userId === account.userId);
       if (acc) {
-        acc.accessToken = encryptSecret(accessToken);
+        acc.accessToken = encAccessToken;
         acc.expiresAt = expiresAt;
       }
     });
@@ -112,7 +113,7 @@ function eventBody(task: Task) {
 // 失敗しても呼び出し元(タスクAPI)の処理は止めない、ベストエフォートの同期。
 export async function syncTaskToGoogle(userId: string, task: Task, deleted = false) {
   if (!isConfigured()) return;
-  const db = readDb();
+  const db = await readDb();
   const account = db.googleAccounts.find((a) => a.userId === userId);
   if (!account) return;
   const link = db.gcalEventLinks.find((l) => l.userId === userId && l.taskId === task.id);
@@ -130,7 +131,7 @@ export async function syncTaskToGoogle(userId: string, task: Task, deleted = fal
     if (deleted || task.completed || !task.dueAt) {
       if (link) {
         await fetch(`${base}/${link.eventId}`, { method: "DELETE", headers }).catch(() => {});
-        updateDb((d) => {
+        await updateDb((d) => {
           d.gcalEventLinks = d.gcalEventLinks.filter(
             (l) => !(l.userId === userId && l.taskId === task.id)
           );
@@ -154,7 +155,7 @@ export async function syncTaskToGoogle(userId: string, task: Task, deleted = fal
         });
         if (created.ok) {
           const data = await created.json();
-          updateDb((d) => {
+          await updateDb((d) => {
             const l = d.gcalEventLinks.find(
               (x) => x.userId === userId && x.taskId === task.id
             );
@@ -170,7 +171,7 @@ export async function syncTaskToGoogle(userId: string, task: Task, deleted = fal
       });
       if (created.ok) {
         const data = await created.json();
-        updateDb((d) => {
+        await updateDb((d) => {
           d.gcalEventLinks.push({ userId, taskId: task.id, eventId: data.id });
         });
       }

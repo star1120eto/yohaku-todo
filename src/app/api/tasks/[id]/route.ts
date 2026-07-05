@@ -1,6 +1,4 @@
-import fs from "fs";
-import path from "path";
-import { readDb, updateDb, uploadsDir } from "@/lib/db";
+import { readDb, updateDb } from "@/lib/db";
 import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { nextOccurrence } from "@/lib/recurrence";
 import { notifyUserSlack } from "@/lib/slack";
@@ -34,7 +32,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const body = await req.json().catch(() => ({}));
 
   type Result = "notfound" | "forbidden" | { task: Task; event: "task.update" | "task.complete" | null };
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const t = db.tasks.find((x) => x.id === id);
     if (!t) return "notfound";
     const ws = db.workspaces.find((w) => w.id === t.workspaceId);
@@ -226,7 +224,10 @@ export async function PATCH(req: Request, { params }: Params) {
   if (result === "forbidden") return jsonError("閲覧のみの権限では変更できません", 403);
   syncTaskToGoogle(user.id, result.task).catch(() => {});
   if (result.event) {
-    dispatchWebhooks(readDb(), result.task.workspaceId, result.event, result.task).catch(() => {});
+    const event = result.event;
+    readDb()
+      .then((db) => dispatchWebhooks(db, result.task.workspaceId, event, result.task))
+      .catch(() => {});
   }
   return Response.json({ task: result.task });
 }
@@ -237,7 +238,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   const { id } = await params;
 
   type Result = "notfound" | "forbidden" | { removed: Task[] };
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const t = db.tasks.find((x) => x.id === id);
     if (!t) return "notfound";
     const ws = db.workspaces.find((w) => w.id === t.workspaceId);
@@ -249,17 +250,7 @@ export async function DELETE(_req: Request, { params }: Params) {
     const removedIds = new Set(removed.map((x) => x.id));
     db.tasks = db.tasks.filter((x) => !removedIds.has(x.id));
 
-    // コメント・添付ファイルの実体も削除する
-    const removedComments = db.comments.filter((c) => removedIds.has(c.taskId));
-    for (const c of removedComments) {
-      for (const att of c.attachments) {
-        try {
-          fs.unlinkSync(path.join(uploadsDir(), att.path));
-        } catch {
-          // 実体が既に無くても無視する
-        }
-      }
-    }
+    // コメント(添付ファイルはコメント内にbase64で保持しているため、コメントごと消せば十分)
     db.comments = db.comments.filter((c) => !removedIds.has(c.taskId));
 
     logActivity(db, {
@@ -274,10 +265,15 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   if (result === "notfound") return jsonError("タスクが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では削除できません", 403);
-  const db = readDb();
+  readDb()
+    .then(async (db) => {
+      for (const t of result.removed) {
+        await dispatchWebhooks(db, t.workspaceId, "task.delete", t);
+      }
+    })
+    .catch(() => {});
   for (const t of result.removed) {
     syncTaskToGoogle(user.id, t, true).catch(() => {});
-    dispatchWebhooks(db, t.workspaceId, "task.delete", t).catch(() => {});
   }
   return Response.json({ ok: true });
 }

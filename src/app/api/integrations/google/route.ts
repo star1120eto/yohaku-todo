@@ -7,7 +7,7 @@ export async function GET() {
   if (!user) return jsonError("ログインが必要です", 401);
   if (!isConfigured()) return Response.json({ configured: false, connected: false });
 
-  const account = updateDb((db) =>
+  const account = await updateDb((db) =>
     db.googleAccounts.find((a) => a.userId === user.id)
   );
   if (!account) return Response.json({ configured: true, connected: false });
@@ -26,7 +26,7 @@ export async function PATCH(req: Request) {
   const calendarId = String(body.calendarId ?? "").trim();
   if (!calendarId) return jsonError("カレンダーIDを入力してください", 400);
 
-  const ok = updateDb((db) => {
+  const ok = await updateDb((db) => {
     const account = db.googleAccounts.find((a) => a.userId === user.id);
     if (!account) return false;
     account.calendarId = calendarId;
@@ -39,7 +39,7 @@ export async function PATCH(req: Request) {
 export async function DELETE() {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
-  updateDb((db) => {
+  await updateDb((db) => {
     db.googleAccounts = db.googleAccounts.filter((a) => a.userId !== user.id);
     db.gcalEventLinks = db.gcalEventLinks.filter((l) => l.userId !== user.id);
   });

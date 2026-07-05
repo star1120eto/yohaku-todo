@@ -1,10 +1,10 @@
 import { readDb, updateDb, newId } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
-import { defaultSettings, type FavoriteItem, type Theme } from "@/lib/types";
+import { defaultSettings, type Database, type FavoriteItem, type Theme } from "@/lib/types";
 
 // フォルダ/フィルターの参照先が既に存在しないお気に入りを取り除く
 function cleanseFavorites(
-  db: ReturnType<typeof readDb>,
+  db: Database,
   userId: string,
   favorites: FavoriteItem[]
 ): FavoriteItem[] {
@@ -30,7 +30,7 @@ export interface ResolvedFavorite extends FavoriteItem {
 // お気に入りを表示用に解決する(フォルダ名・フィルター名を引く)。
 // クライアントは現在のワークスペースのフォルダしか持たないため、サーバー側で解決する。
 function resolveFavorites(
-  db: ReturnType<typeof readDb>,
+  db: Database,
   userId: string,
   favorites: FavoriteItem[]
 ): ResolvedFavorite[] {
@@ -56,10 +56,10 @@ function resolveFavorites(
 export async function GET() {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
-  let db = readDb();
+  let db = await readDb();
   let stored = db.settings.find((s) => s.userId === user.id);
   if (!stored || !stored.inboundToken) {
-    updateDb((d) => {
+    await updateDb((d) => {
       let s = d.settings.find((x) => x.userId === user.id);
       if (!s) {
         s = defaultSettings(user.id);
@@ -67,7 +67,7 @@ export async function GET() {
       }
       if (!s.inboundToken) s.inboundToken = newId();
     });
-    db = readDb();
+    db = await readDb();
     stored = db.settings.find((s) => s.userId === user.id);
   }
   const settings = { ...defaultSettings(user.id), ...stored };
@@ -89,7 +89,7 @@ export async function PUT(req: Request) {
     return s.length >= 1 && s.length <= 3 ? s : fallback;
   };
 
-  const settings = updateDb((db) => {
+  const settings = await updateDb((db) => {
     let s = db.settings.find((x) => x.userId === user.id);
     if (!s) {
       s = defaultSettings(user.id);

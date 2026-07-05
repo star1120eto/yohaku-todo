@@ -21,29 +21,31 @@ export async function GET(req: Request) {
     const tokens = await exchangeCode(code);
     if (!tokens.refresh_token) {
       // 再連携時など refresh_token が返らない場合がある。既存のものを維持する。
-      const existing = updateDb((db) =>
+      const existing = await updateDb((db) =>
         db.googleAccounts.find((a) => a.userId === user.id)
       );
       if (!existing) throw new Error("no refresh token on first connect");
     }
     const email = await fetchUserEmail(tokens.access_token);
+    const encAccessToken = await encryptSecret(tokens.access_token);
+    const encRefreshToken = await encryptSecret(tokens.refresh_token ?? "");
 
-    updateDb((db) => {
+    await updateDb((db) => {
       const existing = db.googleAccounts.find((a) => a.userId === user.id);
       const expiresAt = Date.now() + tokens.expires_in * 1000;
       if (existing) {
-        existing.accessToken = encryptSecret(tokens.access_token);
+        existing.accessToken = encAccessToken;
         existing.expiresAt = expiresAt;
         existing.email = email || existing.email;
         if (tokens.refresh_token) {
-          existing.refreshToken = encryptSecret(tokens.refresh_token);
+          existing.refreshToken = encRefreshToken;
         }
       } else {
         db.googleAccounts.push({
           userId: user.id,
           email,
-          accessToken: encryptSecret(tokens.access_token),
-          refreshToken: encryptSecret(tokens.refresh_token ?? ""),
+          accessToken: encAccessToken,
+          refreshToken: encRefreshToken,
           expiresAt,
           calendarId: "primary",
           connectedAt: new Date().toISOString(),

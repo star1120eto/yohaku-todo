@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   const taskId = url.searchParams.get("taskId");
   const limit = Math.min(200, Math.max(1, Number(url.searchParams.get("limit")) || 50));
 
-  const db = readDb();
+  const db = await readDb();
   const ws = db.workspaces.find((w) => w.id === workspaceId);
   if (!ws || !isMember(ws, user.id)) {
     return jsonError("ワークスペースが見つかりません", 404);

@@ -8,7 +8,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  const ok = updateDb((db) => {
+  const ok = await updateDb((db) => {
     const before = db.webhooks.length;
     db.webhooks = db.webhooks.filter((w) => !(w.id === id && w.userId === user.id));
     return db.webhooks.length < before;

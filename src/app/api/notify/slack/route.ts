@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   const text = String(body.text ?? "").trim();
   if (!text) return jsonError("本文がありません", 400);
 
-  const db = readDb();
+  const db = await readDb();
   const slack = db.settings.find((s) => s.userId === user.id)?.slack;
   if (!slack?.enabled || !slack.webhookUrl) {
     return jsonError("Slack通知が設定されていません", 400);

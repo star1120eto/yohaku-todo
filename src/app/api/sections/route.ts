@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
   const folderId = new URL(req.url).searchParams.get("folderId") ?? "";
-  const db = readDb();
+  const db = await readDb();
   const folder = db.folders.find((f) => f.id === folderId);
   const ws = folder && db.workspaces.find((w) => w.id === folder.workspaceId);
   if (!folder || !ws || !isMember(ws, user.id)) {
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   if (!name) return jsonError("セクション名を入力してください", 400);
 
   type Result = "notfound" | "forbidden" | Section;
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const folder = db.folders.find((f) => f.id === folderId);
     const ws = folder && db.workspaces.find((w) => w.id === folder.workspaceId);
     if (!folder || !ws || !isMember(ws, user.id)) return "notfound";

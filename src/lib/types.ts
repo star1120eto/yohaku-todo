@@ -116,7 +116,7 @@ export interface Attachment {
   name: string;
   size: number;
   mime: string;
-  path: string; // data/uploads 配下の相対パス
+  data: string; // ファイル本体(base64)。D1の1行JSONにそのまま保持する
 }
 
 export interface Comment {

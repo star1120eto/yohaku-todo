@@ -1,12 +1,11 @@
-import { randomBytes } from "crypto";
-import { readDb, updateDb, newId } from "@/lib/db";
+import { readDb, updateDb, newId, randomHex } from "@/lib/db";
 import { currentUser, hashApiToken, jsonError } from "@/lib/auth";
 import type { ApiToken } from "@/lib/types";
 
 export async function GET() {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
-  const db = readDb();
+  const db = await readDb();
   const tokens = db.apiTokens
     .filter((t) => t.userId === user.id)
     .map(({ tokenHash: _tokenHash, ...rest }) => rest)
@@ -21,17 +20,17 @@ export async function POST(req: Request) {
   const name = String(body.name ?? "").trim();
   if (!name) return jsonError("トークン名を入力してください", 400);
 
-  const plain = `yhk_${randomBytes(24).toString("hex")}`;
+  const plain = `yhk_${randomHex(24)}`;
   const token: ApiToken = {
     id: newId(),
     userId: user.id,
     name,
-    tokenHash: hashApiToken(plain),
+    tokenHash: await hashApiToken(plain),
     tokenPreview: `${plain.slice(0, 8)}...`,
     createdAt: new Date().toISOString(),
     lastUsedAt: null,
   };
-  updateDb((db) => {
+  await updateDb((db) => {
     db.apiTokens.push(token);
   });
 

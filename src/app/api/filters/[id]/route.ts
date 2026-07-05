@@ -10,7 +10,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  const filter = updateDb((db) => {
+  const filter = await updateDb((db) => {
     const f = db.savedFilters.find((x) => x.id === id && x.userId === user.id);
     if (!f) return null;
     if (typeof body.name === "string" && body.name.trim()) {
@@ -31,7 +31,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  const ok = updateDb((db) => {
+  const ok = await updateDb((db) => {
     const before = db.savedFilters.length;
     db.savedFilters = db.savedFilters.filter(
       (x) => !(x.id === id && x.userId === user.id)
