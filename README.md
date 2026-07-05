@@ -108,6 +108,8 @@ PORT=3100 npm run test:e2e
 [OpenNext for Cloudflare](https://opennext.js.org/cloudflare) を使って Cloudflare Workers 上にデプロイします。
 データは Cloudflare D1(無料枠 5GB の SQLite)に保存されるため、外部の DB サービスは不要です。
 
+> `wrangler` が Node.js 22 以上を要求するため、開発・デプロイには Node.js 22+ が必要です。
+
 ### 初回セットアップ
 
 ```bash
