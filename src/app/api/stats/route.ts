@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const tzOffset = Number(url.searchParams.get("tzOffset")) || 0;
 
   type Result = { ok: false } | { ok: true; stats: StatsResult };
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const ws = workspaceId ? db.workspaces.find((w) => w.id === workspaceId) : null;
     if (workspaceId && (!ws || !isMember(ws, user.id))) {
       return { ok: false };
