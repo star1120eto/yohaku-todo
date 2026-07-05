@@ -14,7 +14,7 @@ export async function POST(req: Request, { params }: Params) {
   const workspaceId = String(body.workspaceId ?? "");
 
   type Result = "notfound" | "forbidden" | { folder: Folder; tasks: Task[] };
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const tmpl = db.templates.find((t) => t.id === id && t.ownerId === user.id);
     if (!tmpl) return "notfound";
     const ws = db.workspaces.find((w) => w.id === workspaceId);

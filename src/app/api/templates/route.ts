@@ -6,7 +6,7 @@ import type { Task, Template, TemplateItem } from "@/lib/types";
 export async function GET() {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
-  const db = readDb();
+  const db = await readDb();
   const templates = db.templates
     .filter((t) => t.ownerId === user.id)
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
   if (!name) return jsonError("テンプレート名を入力してください", 400);
 
   type Result = "notfound" | Template;
-  const result = updateDb<Result>((db) => {
+  const result = await updateDb<Result>((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
     if (!ws || !isMember(ws, user.id)) return "notfound";
     const folder = db.folders.find(
