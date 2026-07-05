@@ -9,7 +9,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
-  const section = updateDb((db) => {
+  const section = await updateDb((db) => {
     const s = db.sections.find((x) => x.id === id);
     if (!s) return null;
     const ws = db.workspaces.find((w) => w.id === s.workspaceId);
@@ -30,7 +30,7 @@ export async function DELETE(_req: Request, { params }: Params) {
   if (!user) return jsonError("ログインが必要です", 401);
   const { id } = await params;
 
-  const ok = updateDb((db) => {
+  const ok = await updateDb((db) => {
     const s = db.sections.find((x) => x.id === id);
     if (!s) return false;
     const ws = db.workspaces.find((w) => w.id === s.workspaceId);
