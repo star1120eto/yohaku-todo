@@ -15,6 +15,8 @@ async function register(page: Page) {
 async function addTask(page: Page, raw: string) {
   const input = page.getByPlaceholder(/タスクを追加/);
   await input.fill(raw);
+  // 送信前に値が確定していることを確認する(負荷が高いと空のまま送信されることがあるため)
+  await expect(input).toHaveValue(raw);
   await input.press("Enter");
 }
 

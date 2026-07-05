@@ -13,6 +13,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
+  // JSON ファイルストアはデータ量に応じて読み書きが遅くなるため、既定より少し長めに待つ
+  expect: { timeout: 10_000 },
   use: {
     baseURL,
     trace: "on-first-retry",
