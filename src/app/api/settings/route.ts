@@ -1,10 +1,10 @@
 import { readDb, updateDb } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
-import { defaultSettings, type FavoriteItem, type Theme } from "@/lib/types";
+import { defaultSettings, type Database, type FavoriteItem, type Theme } from "@/lib/types";
 
 // フォルダ/フィルターの参照先が既に存在しないお気に入りを取り除く
 function cleanseFavorites(
-  db: ReturnType<typeof readDb>,
+  db: Database,
   userId: string,
   favorites: FavoriteItem[]
 ): FavoriteItem[] {
@@ -30,7 +30,7 @@ export interface ResolvedFavorite extends FavoriteItem {
 // お気に入りを表示用に解決する(フォルダ名・フィルター名を引く)。
 // クライアントは現在のワークスペースのフォルダしか持たないため、サーバー側で解決する。
 function resolveFavorites(
-  db: ReturnType<typeof readDb>,
+  db: Database,
   userId: string,
   favorites: FavoriteItem[]
 ): ResolvedFavorite[] {
