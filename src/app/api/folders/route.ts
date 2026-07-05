@@ -5,7 +5,7 @@ export async function GET(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
   const workspaceId = new URL(req.url).searchParams.get("workspaceId") ?? "";
-  const db = readDb();
+  const db = await readDb();
   const ws = db.workspaces.find((w) => w.id === workspaceId);
   if (!ws || !isMember(ws, user.id)) {
     return jsonError("ワークスペースが見つかりません", 404);
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
   const workspaceId = String(body.workspaceId ?? "");
   if (!name) return jsonError("フォルダ名を入力してください", 400);
 
-  const folder = updateDb((db) => {
+  const folder = await updateDb((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
     if (!ws || !isMember(ws, user.id)) return null;
     const existing = db.folders.find(

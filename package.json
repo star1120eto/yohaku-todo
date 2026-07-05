@@ -2,6 +2,9 @@
   "name": "yohaku-todo",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -12,7 +15,12 @@
     "test:e2e": "playwright test",
     "cap:sync": "cap sync",
     "cap:ios": "cap open ios",
-    "cap:android": "cap open android"
+    "cap:android": "cap open android",
+    "cf:preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "cf:deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf:typegen": "wrangler types",
+    "cf:d1:migrate:local": "wrangler d1 execute yohaku-todo-db --local --file=./schema.sql",
+    "cf:d1:migrate:remote": "wrangler d1 execute yohaku-todo-db --remote --file=./schema.sql"
   },
   "dependencies": {
     "next": "^15.3.3",
@@ -21,6 +29,8 @@
     "swr": "^2.3.3"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "@opennextjs/cloudflare": "^1.20.1",
     "@playwright/test": "^1.61.0",
     "@types/node": "^22.15.0",
     "@types/react": "^19.1.0",
@@ -29,6 +39,7 @@
     "postcss": "^8.5.3",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
-    "vitest": "^2.1.9"
+    "vitest": "^2.1.9",
+    "wrangler": "^4.107.0"
   }
 }

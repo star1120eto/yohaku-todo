@@ -6,7 +6,7 @@ export async function GET(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
   const workspaceId = new URL(req.url).searchParams.get("workspaceId") ?? "";
-  const db = readDb();
+  const db = await readDb();
   const ws = db.workspaces.find((w) => w.id === workspaceId);
   if (!ws || !isMember(ws, user.id)) {
     return jsonError("ワークスペースが見つかりません", 404);
@@ -26,7 +26,7 @@ export async function POST(req: Request) {
   if (!title) return jsonError("タイトルを入力してください", 400);
 
   const now = new Date().toISOString();
-  const task = updateDb((db) => {
+  const task = await updateDb((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
     if (!ws || !isMember(ws, user.id)) return null;
     const t: Task = {

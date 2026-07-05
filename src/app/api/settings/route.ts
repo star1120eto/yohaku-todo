@@ -5,7 +5,7 @@ import { defaultSettings, type Theme } from "@/lib/types";
 export async function GET() {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
-  const db = readDb();
+  const db = await readDb();
   const stored = db.settings.find((s) => s.userId === user.id);
   const settings = { ...defaultSettings(user.id), ...stored };
   return Response.json({ settings });
@@ -24,7 +24,7 @@ export async function PUT(req: Request) {
     return s.length >= 1 && s.length <= 3 ? s : fallback;
   };
 
-  const settings = updateDb((db) => {
+  const settings = await updateDb((db) => {
     let s = db.settings.find((x) => x.userId === user.id);
     if (!s) {
       s = defaultSettings(user.id);
