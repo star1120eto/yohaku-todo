@@ -10,7 +10,7 @@ export async function GET(req: Request) {
   const q = new URL(req.url).searchParams.get("q")?.trim() ?? "";
   if (!q) return Response.json({ results: [] });
 
-  const db = readDb();
+  const db = await readDb();
   const myWorkspaces = db.workspaces.filter((w) => isMember(w, user.id));
   const wsNameById = new Map(myWorkspaces.map((w) => [w.id, w.name]));
 
