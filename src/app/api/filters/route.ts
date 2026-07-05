@@ -5,7 +5,7 @@ import { isEmptyQuery, parseQuery } from "@/lib/filterQuery";
 export async function GET() {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
-  const db = readDb();
+  const db = await readDb();
   const filters = db.savedFilters
     .filter((f) => f.userId === user.id)
     .sort((a, b) => a.order - b.order);
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     return jsonError("絞り込み条件を1つ以上指定してください", 400);
   }
 
-  const filter = updateDb((db) => {
+  const filter = await updateDb((db) => {
     const f = {
       id: newId(),
       userId: user.id,
