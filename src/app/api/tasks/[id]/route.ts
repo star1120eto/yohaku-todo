@@ -40,10 +40,27 @@ export async function PATCH(req: Request, { params }: Params) {
     if ([0, 1, 2, 3].includes(body.priority)) t.priority = body.priority;
     if (Array.isArray(body.tags)) t.tags = body.tags.map(String);
     if ("folderId" in body) {
-      t.folderId = typeof body.folderId === "string" ? body.folderId : null;
+      const nextFolderId = typeof body.folderId === "string" ? body.folderId : null;
+      if (nextFolderId !== t.folderId) {
+        t.folderId = nextFolderId;
+        t.sectionId = null; // フォルダを移動したら現在のセクション所属は外す
+      }
       // 親のフォルダ移動には子も追従させる
       for (const c of db.tasks) {
-        if (c.parentId === t.id) c.folderId = t.folderId;
+        if (c.parentId === t.id) {
+          c.folderId = t.folderId;
+          c.sectionId = null;
+        }
+      }
+    }
+    if ("sectionId" in body) {
+      if (typeof body.sectionId === "string" && t.folderId) {
+        const section = db.sections.find(
+          (x) => x.id === body.sectionId && x.folderId === t.folderId
+        );
+        t.sectionId = section ? section.id : null;
+      } else {
+        t.sectionId = null;
       }
     }
     if ("parentId" in body) {

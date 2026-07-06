@@ -1,17 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { SavedFilter, Task } from "@/lib/types";
+import type { SavedFilter, Section, Task } from "@/lib/types";
 import { DEFAULT_PREFIXES, favoriteKey } from "@/lib/types";
 import { parseTitle } from "@/lib/parse";
 import { matchesQuery } from "@/lib/format";
-import { buildTaskTree } from "@/lib/tree";
+import { buildTaskTree, type TaskNode } from "@/lib/tree";
 import { parseQuery, matchTask } from "@/lib/filterQuery";
 import {
   api,
   useFolders,
   useMe,
   useSavedFilters,
+  useSections,
   useSettings,
   useTasks,
   useWorkspaces,
@@ -57,6 +58,10 @@ export default function App() {
   const { filters: savedFilters, mutate: mutateFilters } = useSavedFilters(!!user);
 
   const [filter, setFilter] = useState<Filter>({ type: "all" });
+  const currentFolderId = filter.type === "folder" ? filter.folderId : null;
+  const { sections, mutate: mutateSections } = useSections(currentFolderId);
+  const [addingSection, setAddingSection] = useState(false);
+  const [newSectionName, setNewSectionName] = useState("");
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -248,6 +253,36 @@ export default function App() {
   const activeNodes = useMemo(() => buildTaskTree(active), [active]);
   const completedNodes = useMemo(() => buildTaskTree(completed), [completed]);
 
+  // フォルダ表示でセクションが存在する場合、トップレベルタスクをセクションごとにまとめる
+  const showSections = filter.type === "folder" && sections.length > 0;
+  const sectionGroups = useMemo(() => {
+    if (!showSections) return [];
+    const topLevel = active.filter((t) => !t.parentId);
+    const bySection = new Map<string | null, Task[]>();
+    for (const t of topLevel) {
+      const key = t.sectionId;
+      if (!bySection.has(key)) bySection.set(key, []);
+      bySection.get(key)!.push(t);
+    }
+    const groups: { section: Section | null; nodes: TaskNode[] }[] = [];
+    const nodesFor = (topLevelTasks: Task[]): TaskNode[] => {
+      const ids = new Set(topLevelTasks.map((t) => t.id));
+      const withChildren = active.filter(
+        (t) => ids.has(t.id) || (t.parentId && ids.has(t.parentId))
+      );
+      return buildTaskTree(withChildren);
+    };
+    if (bySection.has(null)) {
+      groups.push({ section: null, nodes: nodesFor(bySection.get(null)!) });
+    }
+    for (const s of sections) {
+      if (bySection.has(s.id)) {
+        groups.push({ section: s, nodes: nodesFor(bySection.get(s.id)!) });
+      }
+    }
+    return groups;
+  }, [showSections, active, sections]);
+
   const taskCounts = useMemo(() => {
     const end = endOfToday().getTime();
     return {
@@ -309,6 +344,44 @@ export default function App() {
       weekOfMonth: parsed.weekOfMonth,
       durationMinutes: parsed.durationMinutes,
     });
+    mutateTasks();
+  };
+
+  const addSectionTask = async (sectionId: string | null, raw: string) => {
+    if (!wsId || currentFolderId == null) return;
+    const parsed = parseTitle(raw, prefixes);
+    await api("/api/tasks", "POST", {
+      workspaceId: wsId,
+      title: parsed.title || raw.trim(),
+      folderId: currentFolderId,
+      sectionId,
+      priority: parsed.priority,
+      tags: parsed.tags,
+      dueAt: parsed.dueAt ? parsed.dueAt.toISOString() : null,
+      repeat: parsed.repeat,
+      weekday: parsed.weekday,
+      weekOfMonth: parsed.weekOfMonth,
+      durationMinutes: parsed.durationMinutes,
+    });
+    mutateTasks();
+  };
+
+  const createSection = async (name: string) => {
+    if (!currentFolderId || !name.trim()) return;
+    await api("/api/sections", "POST", { folderId: currentFolderId, name: name.trim() });
+    mutateSections();
+    setAddingSection(false);
+    setNewSectionName("");
+  };
+
+  const renameSection = async (id: string, name: string) => {
+    await api(`/api/sections/${id}`, "PATCH", { name });
+    mutateSections();
+  };
+
+  const deleteSection = async (id: string) => {
+    await api(`/api/sections/${id}`, "DELETE");
+    mutateSections();
     mutateTasks();
   };
 
@@ -474,6 +547,14 @@ export default function App() {
               <h2 className="text-2xl font-normal tracking-tight flex-1">
                 {filterTitle}
               </h2>
+              {!searchOpen && filter.type === "folder" && (
+                <button
+                  onClick={() => setAddingSection(true)}
+                  className="text-xs text-ink-faint hover:text-ink transition-colors"
+                >
+                  ＋ セクション
+                </button>
+              )}
               {!searchOpen && (
                 <button
                   onClick={openSearch}
@@ -487,6 +568,32 @@ export default function App() {
                 </button>
               )}
             </div>
+            {addingSection && (
+              <form
+                className="flex gap-2 mb-4 -mt-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  createSection(newSectionName);
+                }}
+              >
+                <input
+                  autoFocus
+                  className={`${inputClass} text-sm`}
+                  placeholder="セクション名"
+                  value={newSectionName}
+                  onChange={(e) => setNewSectionName(e.target.value)}
+                  onBlur={() => {
+                    if (!newSectionName.trim()) setAddingSection(false);
+                  }}
+                />
+                <button
+                  type="submit"
+                  className="shrink-0 rounded-lg border border-line px-3 text-sm text-ink-soft hover:text-ink"
+                >
+                  追加
+                </button>
+              </form>
+            )}
 
             {searchOpen && (
               <div className="mb-6 animate-fade-up">
@@ -555,22 +662,42 @@ export default function App() {
               </p>
             ) : (
               <>
-                <ul>
-                  {activeNodes.map((n) => (
-                    <TaskItem
-                      key={n.task.id}
-                      task={n.task}
-                      depth={n.depth}
-                      childCount={n.childCount}
-                      completedChildCount={n.completedChildCount}
-                      assigneeName={
-                        n.task.assigneeId ? memberNameById.get(n.task.assigneeId) : undefined
-                      }
-                      onToggle={toggleTask}
-                      onOpen={setOpenTask}
-                    />
-                  ))}
-                </ul>
+                {showSections ? (
+                  <div className="space-y-7">
+                    {sectionGroups.map((g) => (
+                      <SectionBlock
+                        key={g.section?.id ?? "none"}
+                        section={g.section}
+                        nodes={g.nodes}
+                        memberNameById={memberNameById}
+                        onToggle={toggleTask}
+                        onOpen={setOpenTask}
+                        onAddTask={(title) => addSectionTask(g.section?.id ?? null, title)}
+                        onRename={
+                          g.section ? (name) => renameSection(g.section!.id, name) : undefined
+                        }
+                        onDelete={g.section ? () => deleteSection(g.section!.id) : undefined}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <ul>
+                    {activeNodes.map((n) => (
+                      <TaskItem
+                        key={n.task.id}
+                        task={n.task}
+                        depth={n.depth}
+                        childCount={n.childCount}
+                        completedChildCount={n.completedChildCount}
+                        assigneeName={
+                          n.task.assigneeId ? memberNameById.get(n.task.assigneeId) : undefined
+                        }
+                        onToggle={toggleTask}
+                        onOpen={setOpenTask}
+                      />
+                    ))}
+                  </ul>
+                )}
 
                 {completed.length > 0 && (
                   <div className="mt-10">
@@ -668,6 +795,124 @@ export default function App() {
           onSaved={mutateFilters}
           onClose={() => setFilterDialog(null)}
         />
+      )}
+    </div>
+  );
+}
+
+function SectionBlock({
+  section,
+  nodes,
+  memberNameById,
+  onToggle,
+  onOpen,
+  onAddTask,
+  onRename,
+  onDelete,
+}: {
+  section: Section | null;
+  nodes: TaskNode[];
+  memberNameById: Map<string, string>;
+  onToggle: (task: Task) => void;
+  onOpen: (task: Task) => void;
+  onAddTask: (title: string) => void;
+  onRename?: (name: string) => void;
+  onDelete?: () => void;
+}) {
+  const [adding, setAdding] = useState(false);
+  const [title, setTitle] = useState("");
+  const [renaming, setRenaming] = useState(false);
+  const [name, setName] = useState(section?.name ?? "");
+
+  return (
+    <div>
+      <div className="group flex items-center gap-2 mb-1.5">
+        {renaming ? (
+          <form
+            className="flex-1"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (name.trim() && onRename) onRename(name.trim());
+              setRenaming(false);
+            }}
+          >
+            <input
+              autoFocus
+              className="w-full bg-transparent text-[11px] text-ink-soft border-b border-line"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onBlur={() => setRenaming(false)}
+            />
+          </form>
+        ) : (
+          <button
+            onClick={() => onRename && setRenaming(true)}
+            className="text-[11px] text-ink-faint flex-1 text-left"
+          >
+            {section ? section.name : "セクションなし"}
+          </button>
+        )}
+        <button
+          onClick={() => setAdding(true)}
+          className="text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+          title="タスクを追加"
+        >
+          ＋
+        </button>
+        {onDelete && (
+          <button
+            onClick={() => {
+              if (confirm(`セクション「${section?.name}」を削除しますか？（中のタスクは残ります）`)) {
+                onDelete();
+              }
+            }}
+            className="text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity text-xs"
+            title="削除"
+          >
+            ×
+          </button>
+        )}
+      </div>
+      <ul>
+        {nodes.map((n) => (
+          <TaskItem
+            key={n.task.id}
+            task={n.task}
+            depth={n.depth}
+            childCount={n.childCount}
+            completedChildCount={n.completedChildCount}
+            assigneeName={
+              n.task.assigneeId ? memberNameById.get(n.task.assigneeId) : undefined
+            }
+            onToggle={onToggle}
+            onOpen={onOpen}
+          />
+        ))}
+      </ul>
+      {adding && (
+        <form
+          className="flex gap-2 mt-1.5 px-2"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (title.trim()) onAddTask(title.trim());
+            setTitle("");
+            setAdding(false);
+          }}
+        >
+          <input
+            autoFocus
+            className="flex-1 bg-transparent text-sm border-b border-line py-1"
+            placeholder="タスクを追加"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={() => {
+              if (!title.trim()) setAdding(false);
+            }}
+          />
+        </form>
+      )}
+      {nodes.length === 0 && !adding && (
+        <p className="px-2 text-xs text-ink-faint">タスクなし</p>
       )}
     </div>
   );

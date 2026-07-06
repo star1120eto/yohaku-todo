@@ -34,6 +34,15 @@ export interface Folder {
   createdAt: string;
 }
 
+export interface Section {
+  id: string;
+  workspaceId: string;
+  folderId: string; // セクションは必ずフォルダに属する
+  name: string;
+  order: number;
+  createdAt: string;
+}
+
 export interface TaskLocation {
   label: string;
   lat: number;
@@ -45,6 +54,7 @@ export interface Task {
   id: string;
   workspaceId: string;
   folderId: string | null;
+  sectionId: string | null; // フォルダ内のグルーピング。folderId が null なら常に null
   parentId: string | null; // 親タスクID。1階層のみ(親自身は parentId を持てない)
   title: string;
   note: string;
@@ -137,6 +147,7 @@ export interface Database {
   users: User[];
   workspaces: Workspace[];
   folders: Folder[];
+  sections: Section[];
   tasks: Task[];
   settings: UserSettings[];
   savedFilters: SavedFilter[];
