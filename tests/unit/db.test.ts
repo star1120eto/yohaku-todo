@@ -60,6 +60,7 @@ describe("readDb", () => {
       settings: [],
       savedFilters: [],
       completions: [],
+      activities: [],
     });
   });
 });

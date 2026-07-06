@@ -1,5 +1,6 @@
 import { updateDb } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -43,6 +44,12 @@ export async function DELETE(_req: Request, { params }: Params) {
         t.sectionId = null;
       }
     }
+    logActivity(db, {
+      workspaceId: f.workspaceId,
+      actorId: user.id,
+      type: "folder.delete",
+      detail: `フォルダ「${f.name}」を削除`,
+    });
     return true;
   });
 
