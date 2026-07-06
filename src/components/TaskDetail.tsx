@@ -23,6 +23,7 @@ export default function TaskDetail({
   task,
   folders,
   allTasks,
+  members = [],
   onOpenTask,
   onTasksChanged,
   onSave,
@@ -32,6 +33,7 @@ export default function TaskDetail({
   task: Task;
   folders: Folder[];
   allTasks: Task[];
+  members?: { id: string; name: string }[];
   onOpenTask: (task: Task) => void;
   onTasksChanged: () => void;
   onSave: (patch: Partial<Task>) => Promise<void>;
@@ -44,6 +46,7 @@ export default function TaskDetail({
   const [priority, setPriority] = useState(task.priority);
   const [tags, setTags] = useState(task.tags.join(", "));
   const [folderId, setFolderId] = useState(task.folderId ?? "");
+  const [assigneeId, setAssigneeId] = useState(task.assigneeId ?? "");
   const [dueDate, setDueDate] = useState<Date | null>(
     initDue ? new Date(initDue.getFullYear(), initDue.getMonth(), initDue.getDate()) : null
   );
@@ -168,6 +171,7 @@ export default function TaskDetail({
           .map((t) => t.trim())
           .filter(Boolean),
         folderId: folderId || null,
+        assigneeId: assigneeId || null,
         dueAt,
         repeat: (repeat || null) as Task["repeat"],
         weekday,
@@ -286,20 +290,38 @@ export default function TaskDetail({
         </Field>
       </div>
 
-      <Field label="フォルダ">
-        <select
-          className={inputClass}
-          value={folderId}
-          onChange={(e) => setFolderId(e.target.value)}
-        >
-          <option value="">なし</option>
-          {folders.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.name}
-            </option>
-          ))}
-        </select>
-      </Field>
+      <div className={members.length > 1 ? "grid grid-cols-2 gap-4" : ""}>
+        <Field label="フォルダ">
+          <select
+            className={inputClass}
+            value={folderId}
+            onChange={(e) => setFolderId(e.target.value)}
+          >
+            <option value="">なし</option>
+            {folders.map((f) => (
+              <option key={f.id} value={f.id}>
+                {f.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+        {members.length > 1 && (
+          <Field label="担当者">
+            <select
+              className={inputClass}
+              value={assigneeId}
+              onChange={(e) => setAssigneeId(e.target.value)}
+            >
+              <option value="">なし</option>
+              {members.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {m.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
+      </div>
 
       <Field label="タグ（カンマ区切り）">
         <input

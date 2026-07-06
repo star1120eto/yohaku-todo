@@ -57,6 +57,7 @@ export interface Task {
   weekday: number | null; // 0=日〜6=土。monthly-weekday で使用
   weekOfMonth: number | null; // 1〜5、-1=最終。monthly-weekday で使用
   location: TaskLocation | null;
+  assigneeId: string | null; // 共有ワークスペースのメンバーへの単一アサイン
   createdBy: string;
   createdAt: string;
   updatedAt: string;
