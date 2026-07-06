@@ -32,6 +32,7 @@ export default function TaskDetail({
   folders,
   allTasks,
   members = [],
+  canEdit = true,
   onOpenTask,
   onTasksChanged,
   onSave,
@@ -42,6 +43,7 @@ export default function TaskDetail({
   folders: Folder[];
   allTasks: Task[];
   members?: { id: string; name: string }[];
+  canEdit?: boolean;
   onOpenTask: (task: Task) => void;
   onTasksChanged: () => void;
   onSave: (patch: Partial<Task>) => Promise<void>;
@@ -257,6 +259,12 @@ export default function TaskDetail({
 
   return (
     <Modal title="タスクの詳細" onClose={onClose}>
+      {!canEdit && (
+        <p className="text-xs text-ink-faint mb-4 rounded-lg bg-paper/60 border border-line px-3 py-2">
+          閲覧のみの権限です。完了状態の切り替えのみできます。
+        </p>
+      )}
+      <fieldset disabled={!canEdit} className="contents">
       <Field label="タイトル">
         <input className={inputClass} value={title} onChange={(e) => setTitle(e.target.value)} />
       </Field>
@@ -630,6 +638,7 @@ export default function TaskDetail({
           現在地・住所検索・緯度経度の手入力で場所を登録できます。アプリを開いている間、近づくと通知します。
         </p>
       </div>
+      </fieldset>
 
       {!task.parentId && (
         <div className="mb-4">
@@ -657,32 +666,36 @@ export default function TaskDetail({
                   >
                     {s.title}
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => deleteSubtask(s)}
-                    className="text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    ×
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => deleteSubtask(s)}
+                      className="text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>
           )}
-          <form onSubmit={addSubtask} className="flex gap-2">
-            <input
-              className={`${inputClass} text-sm`}
-              placeholder="サブタスクを追加"
-              value={newSubtask}
-              onChange={(e) => setNewSubtask(e.target.value)}
-            />
-            <button
-              type="submit"
-              disabled={!newSubtask.trim()}
-              className="shrink-0 rounded-lg border border-line px-3 text-sm text-ink-soft hover:text-ink disabled:opacity-40"
-            >
-              追加
-            </button>
-          </form>
+          {canEdit && (
+            <form onSubmit={addSubtask} className="flex gap-2">
+              <input
+                className={`${inputClass} text-sm`}
+                placeholder="サブタスクを追加"
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+              />
+              <button
+                type="submit"
+                disabled={!newSubtask.trim()}
+                className="shrink-0 rounded-lg border border-line px-3 text-sm text-ink-soft hover:text-ink disabled:opacity-40"
+              >
+                追加
+              </button>
+            </form>
+          )}
         </div>
       )}
 
@@ -719,20 +732,26 @@ export default function TaskDetail({
       </div>
 
       <div className="flex items-center justify-between pt-2">
-        <button
-          onClick={async () => {
-            await onDelete();
-            onClose();
-          }}
-          className="text-sm text-danger hover:underline"
-        >
-          削除
-        </button>
+        {canEdit ? (
+          <button
+            onClick={async () => {
+              await onDelete();
+              onClose();
+            }}
+            className="text-sm text-danger hover:underline"
+          >
+            削除
+          </button>
+        ) : (
+          <span />
+        )}
         <div className="flex gap-2">
-          <GhostButton onClick={onClose}>キャンセル</GhostButton>
-          <PrimaryButton onClick={save} disabled={busy}>
-            保存
-          </PrimaryButton>
+          <GhostButton onClick={onClose}>{canEdit ? "キャンセル" : "閉じる"}</GhostButton>
+          {canEdit && (
+            <PrimaryButton onClick={save} disabled={busy}>
+              保存
+            </PrimaryButton>
+          )}
         </div>
       </div>
     </Modal>

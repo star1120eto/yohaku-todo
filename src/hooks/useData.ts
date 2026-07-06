@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import type {
   Folder,
+  MemberRole,
   SavedFilter,
   Section,
   Task,
@@ -12,7 +13,8 @@ import type {
 } from "@/lib/types";
 
 export type WorkspaceWithMembers = Workspace & {
-  members: { id: string; name: string }[];
+  myRole: "owner" | MemberRole;
+  members: { id: string; name: string; role: "owner" | MemberRole }[];
 };
 
 async function fetcher(url: string) {

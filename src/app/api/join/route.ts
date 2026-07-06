@@ -23,6 +23,8 @@ export async function POST(req: Request) {
     }
     if (w.ownerId !== user.id && !w.memberIds.includes(user.id)) {
       w.memberIds.push(user.id);
+      w.memberRoles = w.memberRoles ?? {};
+      w.memberRoles[user.id] = w.defaultRole ?? "editor";
       logActivity(db, {
         workspaceId: w.id,
         actorId: user.id,
