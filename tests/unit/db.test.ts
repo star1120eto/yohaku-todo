@@ -59,6 +59,7 @@ describe("readDb", () => {
       tasks: [],
       settings: [],
       savedFilters: [],
+      completions: [],
     });
   });
 });
