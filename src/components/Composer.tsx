@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { parseTitle } from "@/lib/parse";
 import { DEFAULT_PREFIXES, PRIORITY_LABELS, type ParsePrefixes } from "@/lib/types";
-import { formatDue, formatRepeat } from "@/lib/format";
+import { formatDue, formatDuration, formatRepeat } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
 
 export default function Composer({
@@ -52,7 +52,8 @@ export default function Composer({
           parsed.priority > 0 ||
           parsed.tags.length > 0 ||
           parsed.folderName ||
-          parsed.repeat) && (
+          parsed.repeat ||
+          parsed.durationMinutes) && (
           <div className="flex flex-wrap items-center gap-2 px-2 pt-2.5 text-xs text-ink-soft animate-fade-up">
             <span className="text-ink-faint">→</span>
             <span className="text-ink">{parsed.title || "(タイトルなし)"}</span>
@@ -83,6 +84,11 @@ export default function Composer({
             {parsed.folderName && (
               <span className="rounded-full bg-field border border-line px-2 py-0.5">
                 📁 {parsed.folderName}
+              </span>
+            )}
+            {parsed.durationMinutes && (
+              <span className="rounded-full bg-field border border-line px-2 py-0.5">
+                ⏱ {formatDuration(parsed.durationMinutes)}
               </span>
             )}
           </div>

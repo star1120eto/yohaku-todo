@@ -10,8 +10,12 @@ export interface ParsedTitle {
   repeat: Repeat;
   weekday: number | null;
   weekOfMonth: number | null;
+  durationMinutes: number | null;
   matched: string[]; // 解析で取り除かれたトークン(プレビュー表示用)
 }
+
+// 30分 / 2時間 / 2時間30分 → 所要時間(分)
+const DURATION_RE = /^(?:(\d{1,3})時間)?(?:(\d{1,3})分)?$/;
 
 const PRIORITY_WORDS: Record<string, Priority> = {
   "高": 3, "中": 2, "低": 1,
@@ -90,6 +94,7 @@ export function parseTitle(
   let dayOffset: number | null = null;
   let weekday: number | null = null;
   let weekOfMonth: number | null = null;
+  let durationMinutes: number | null = null;
 
   const tokens = input.split(/\s+/).filter(Boolean);
   const rest: string[] = [];
@@ -138,6 +143,13 @@ export function parseTitle(
         if (sched.weekday !== null) weekday = sched.weekday;
         if (sched.weekOfMonth !== null) weekOfMonth = sched.weekOfMonth;
         if (sched.time) time = sched.time;
+        matched.push(token);
+        continue;
+      }
+
+      // 30分 / 2時間 / 2時間30分 → 所要時間
+      if ((m = token.match(DURATION_RE)) && (m[1] || m[2])) {
+        durationMinutes = (m[1] ? +m[1] * 60 : 0) + (m[2] ? +m[2] : 0);
         matched.push(token);
         continue;
       }
@@ -234,6 +246,7 @@ export function parseTitle(
     repeat,
     weekday: repeat === "monthly-weekday" ? weekday : null,
     weekOfMonth: repeat === "monthly-weekday" ? weekOfMonth : null,
+    durationMinutes,
     matched,
   };
 }
