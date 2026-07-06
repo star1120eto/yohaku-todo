@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import type { Theme, UserSettings } from "@/lib/types";
+import type { Theme, UserSettings, WebhookEvent } from "@/lib/types";
+import { WEBHOOK_EVENTS } from "@/lib/types";
 import { api } from "@/hooks/useData";
 import { applyTheme } from "@/lib/theme";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
@@ -13,6 +14,30 @@ interface GcalStatus {
   calendarId?: string;
 }
 
+interface TokenInfo {
+  id: string;
+  name: string;
+  tokenPreview: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+interface WebhookInfo {
+  id: string;
+  workspaceId: string;
+  url: string;
+  events: WebhookEvent[];
+  lastStatus: number | null;
+  lastTriggeredAt: string | null;
+}
+
+const WEBHOOK_EVENT_LABELS: Record<WebhookEvent, string> = {
+  "task.create": "作成",
+  "task.update": "更新",
+  "task.complete": "完了",
+  "task.delete": "削除",
+};
+
 const THEME_OPTIONS: { value: Theme; label: string }[] = [
   { value: "light", label: "ライト" },
   { value: "dark", label: "ダーク" },
@@ -22,12 +47,16 @@ const THEME_OPTIONS: { value: Theme; label: string }[] = [
 export default function SettingsDialog({
   settings,
   userName,
+  workspaceId,
+  workspaceName,
   onSaved,
   onLogout,
   onClose,
 }: {
   settings: UserSettings;
   userName: string;
+  workspaceId: string | null;
+  workspaceName?: string;
   onSaved: () => void;
   onLogout: () => void;
   onClose: () => void;
@@ -70,6 +99,77 @@ export default function SettingsDialog({
   const disconnectGcal = async () => {
     await api("/api/integrations/google", "DELETE");
     setGcal({ configured: true, connected: false });
+  };
+
+  const [tokens, setTokens] = useState<TokenInfo[]>([]);
+  const [newTokenName, setNewTokenName] = useState("");
+  const [issuedToken, setIssuedToken] = useState("");
+
+  const loadTokens = () =>
+    api("/api/tokens", "GET")
+      .then((res: { tokens: TokenInfo[] }) => setTokens(res.tokens))
+      .catch(() => {});
+
+  useEffect(() => {
+    loadTokens();
+  }, []);
+
+  const createToken = async () => {
+    if (!newTokenName.trim()) return;
+    const res = await api("/api/tokens", "POST", { name: newTokenName.trim() });
+    setIssuedToken(res.token);
+    setNewTokenName("");
+    loadTokens();
+  };
+
+  const revokeToken = async (id: string) => {
+    if (!confirm("このトークンを失効させますか？")) return;
+    await api(`/api/tokens/${id}`, "DELETE");
+    loadTokens();
+  };
+
+  const [webhooks, setWebhooks] = useState<WebhookInfo[]>([]);
+  const [webhookUrl2, setWebhookUrl2] = useState("");
+  const [webhookEvents, setWebhookEvents] = useState<WebhookEvent[]>(["task.complete"]);
+  const [webhookMsg, setWebhookMsg] = useState("");
+
+  const loadWebhooks = () => {
+    if (!workspaceId) return;
+    api(`/api/webhooks?workspaceId=${workspaceId}`, "GET")
+      .then((res: { webhooks: WebhookInfo[] }) => setWebhooks(res.webhooks))
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadWebhooks();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceId]);
+
+  const toggleWebhookEvent = (e: WebhookEvent) => {
+    setWebhookEvents((prev) =>
+      prev.includes(e) ? prev.filter((x) => x !== e) : [...prev, e]
+    );
+  };
+
+  const createWebhook = async () => {
+    if (!workspaceId || !webhookUrl2.trim() || !webhookEvents.length) return;
+    setWebhookMsg("");
+    try {
+      await api("/api/webhooks", "POST", {
+        workspaceId,
+        url: webhookUrl2.trim(),
+        events: webhookEvents,
+      });
+      setWebhookUrl2("");
+      loadWebhooks();
+    } catch (err) {
+      setWebhookMsg(err instanceof Error ? err.message : "作成に失敗しました");
+    }
+  };
+
+  const deleteWebhook = async (id: string) => {
+    await api(`/api/webhooks/${id}`, "DELETE");
+    loadWebhooks();
   };
 
   const requestNotification = async () => {
@@ -253,6 +353,123 @@ export default function SettingsDialog({
           )}
         </div>
       )}
+
+      <div className="rounded-xl border border-line bg-paper/60 p-4 mb-6">
+        <h3 className="text-xs text-ink-soft mb-2">APIトークン</h3>
+        <p className="text-[11px] text-ink-faint mb-3 leading-5">
+          外部ツールから <code>Authorization: Bearer &lt;トークン&gt;</code> で
+          <code>/api/v1/tasks</code> などを呼び出せます。
+        </p>
+        {tokens.length > 0 && (
+          <ul className="space-y-1.5 mb-3">
+            {tokens.map((t) => (
+              <li key={t.id} className="flex items-center justify-between text-sm">
+                <span className="text-ink-soft">
+                  {t.name} <span className="text-ink-faint text-[11px]">{t.tokenPreview}</span>
+                </span>
+                <button
+                  onClick={() => revokeToken(t.id)}
+                  className="text-xs text-ink-faint hover:text-danger transition-colors"
+                >
+                  失効
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+        {issuedToken && (
+          <div className="rounded-lg bg-accent-soft text-accent text-xs p-2 mb-3 break-all">
+            発行されたトークン(この画面を閉じると二度と表示されません):
+            <br />
+            {issuedToken}
+          </div>
+        )}
+        <div className="flex items-center gap-2">
+          <input
+            className={inputClass}
+            placeholder="トークン名(例: Zapier)"
+            value={newTokenName}
+            onChange={(e) => setNewTokenName(e.target.value)}
+          />
+          <button
+            onClick={createToken}
+            disabled={!newTokenName.trim()}
+            className="text-xs text-accent hover:underline shrink-0 disabled:opacity-40"
+          >
+            発行
+          </button>
+        </div>
+      </div>
+
+      {workspaceId && (
+        <div className="rounded-xl border border-line bg-paper/60 p-4 mb-6">
+          <h3 className="text-xs text-ink-soft mb-2">
+            Webhook{workspaceName ? `(${workspaceName})` : ""}
+          </h3>
+          <p className="text-[11px] text-ink-faint mb-3 leading-5">
+            このワークスペースのタスクの変更を、外部URLへHTTP POSTで通知します。
+          </p>
+          {webhooks.length > 0 && (
+            <ul className="space-y-1.5 mb-3">
+              {webhooks.map((w) => (
+                <li key={w.id} className="text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-ink-soft truncate max-w-[220px]">{w.url}</span>
+                    <button
+                      onClick={() => deleteWebhook(w.id)}
+                      className="text-xs text-ink-faint hover:text-danger transition-colors shrink-0"
+                    >
+                      削除
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-ink-faint">
+                    {w.events.map((e) => WEBHOOK_EVENT_LABELS[e]).join("・")}
+                    {w.lastStatus !== null && ` / 直近: ${w.lastStatus}`}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          )}
+          <input
+            className={inputClass}
+            placeholder="https://example.com/webhook"
+            value={webhookUrl2}
+            onChange={(e) => setWebhookUrl2(e.target.value)}
+          />
+          <div className="flex flex-wrap gap-3 my-2">
+            {WEBHOOK_EVENTS.map((e) => (
+              <label key={e} className="flex items-center gap-1.5 text-xs cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={webhookEvents.includes(e)}
+                  onChange={() => toggleWebhookEvent(e)}
+                  className="accent-accent"
+                />
+                {WEBHOOK_EVENT_LABELS[e]}
+              </label>
+            ))}
+          </div>
+          {webhookMsg && <p className="text-[11px] text-danger mb-2">{webhookMsg}</p>}
+          <button
+            onClick={createWebhook}
+            disabled={!webhookUrl2.trim() || !webhookEvents.length}
+            className="text-xs text-accent hover:underline disabled:opacity-40"
+          >
+            追加
+          </button>
+        </div>
+      )}
+
+      <div className="rounded-xl border border-line bg-paper/60 p-4 mb-6">
+        <h3 className="text-xs text-ink-soft mb-2">メールからタスクを追加</h3>
+        <p className="text-[11px] text-ink-faint mb-2 leading-5">
+          メール受信サービス(SendGrid Inbound Parse など)から、以下のURLへ件名を
+          POSTするとプライベートワークスペースにタスクが作成されます。
+        </p>
+        <p className="text-[11px] text-ink-soft break-all bg-field rounded-lg p-2">
+          /api/inbound-email?token={settings.inboundToken || "(設定画面を開くと発行されます)"}
+        </p>
+      </div>
 
       <div className="flex items-center justify-between pt-2 border-t border-line/70">
         <button onClick={onLogout} className="text-sm text-ink-faint hover:text-danger transition-colors">

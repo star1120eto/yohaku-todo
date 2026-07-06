@@ -65,6 +65,8 @@ describe("readDb", () => {
       templates: [],
       googleAccounts: [],
       gcalEventLinks: [],
+      apiTokens: [],
+      webhooks: [],
     });
   });
 });
