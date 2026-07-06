@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import type {
   Folder,
+  SavedFilter,
   Task,
   User,
   UserSettings,
@@ -76,4 +77,12 @@ export function useSettings(enabled: boolean) {
     fetcher
   );
   return { settings: data?.settings ?? null, mutate };
+}
+
+export function useSavedFilters(enabled: boolean) {
+  const { data, mutate } = useSWR<{ filters: SavedFilter[] }>(
+    enabled ? "/api/filters" : null,
+    fetcher
+  );
+  return { filters: data?.filters ?? [], mutate };
 }
