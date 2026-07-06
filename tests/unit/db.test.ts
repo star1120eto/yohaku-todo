@@ -63,6 +63,8 @@ describe("readDb", () => {
       activities: [],
       comments: [],
       templates: [],
+      googleAccounts: [],
+      gcalEventLinks: [],
     });
   });
 });

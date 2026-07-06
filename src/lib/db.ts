@@ -19,6 +19,8 @@ const EMPTY_DB: Database = {
   activities: [],
   comments: [],
   templates: [],
+  googleAccounts: [],
+  gcalEventLinks: [],
 };
 
 let testD1: D1Database | undefined;
