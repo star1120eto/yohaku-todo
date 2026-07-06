@@ -55,8 +55,10 @@ describe("readDb", () => {
       users: [],
       workspaces: [],
       folders: [],
+      sections: [],
       tasks: [],
       settings: [],
+      savedFilters: [],
     });
   });
 });
