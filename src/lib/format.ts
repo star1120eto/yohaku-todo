@@ -64,6 +64,41 @@ export function toLocalInputValue(iso: string): string {
   )}:${pad(d.getMinutes())}`;
 }
 
+/** 検索用に文字列を正規化する(全角/半角ゆらぎ・大小文字を吸収)。 */
+export function normalizeForSearch(s: string): string {
+  return s.normalize("NFKC").toLowerCase();
+}
+
+export function matchesQuery(haystacks: string[], query: string): boolean {
+  const q = normalizeForSearch(query).trim();
+  if (!q) return true;
+  return haystacks.some((h) => normalizeForSearch(h).includes(q));
+}
+
+/** 「3分前」「昨日」のような相対時刻表示。 */
+export function formatRelative(iso: string, now: Date = new Date()): string {
+  const d = new Date(iso);
+  const diffSec = Math.round((now.getTime() - d.getTime()) / 1000);
+  if (diffSec < 60) return "たった今";
+  if (diffSec < 3600) return `${Math.floor(diffSec / 60)}分前`;
+  if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}時間前`;
+  const days = Math.floor(diffSec / 86400);
+  if (days === 1) return "昨日";
+  if (days < 7) return `${days}日前`;
+  const sameYear = d.getFullYear() === now.getFullYear();
+  return sameYear
+    ? `${d.getMonth() + 1}/${d.getDate()}`
+    : `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+}
+
+/** 所要時間を「1時間30分」のように表示する。 */
+export function formatDuration(minutes: number): string {
+  if (minutes < 60) return `${minutes}分`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m > 0 ? `${h}時間${m}分` : `${h}時間`;
+}
+
 export function distanceMeters(
   lat1: number,
   lng1: number,
