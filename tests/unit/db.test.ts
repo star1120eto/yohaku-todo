@@ -57,6 +57,7 @@ describe("readDb", () => {
       folders: [],
       tasks: [],
       settings: [],
+      savedFilters: [],
     });
   });
 });
