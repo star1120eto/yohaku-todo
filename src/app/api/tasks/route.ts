@@ -9,6 +9,17 @@ function cleanDuration(v: unknown): number | null {
     : null;
 }
 
+// dueAt の何分前に通知するか。既定は [0](期日ちょうど)。最大5件・30日前まで
+function cleanReminders(v: unknown): number[] {
+  if (!Array.isArray(v)) return [0];
+  const nums = v.filter(
+    (x): x is number =>
+      typeof x === "number" && Number.isInteger(x) && x >= 0 && x <= 43200
+  );
+  const uniq = [...new Set(nums)].sort((a, b) => a - b).slice(0, 5);
+  return uniq.length ? uniq : [0];
+}
+
 export async function GET(req: Request) {
   const user = await currentUser();
   if (!user) return jsonError("ログインが必要です", 401);
@@ -63,6 +74,8 @@ export async function POST(req: Request) {
       priority: [0, 1, 2, 3].includes(body.priority) ? body.priority : 0,
       tags: Array.isArray(body.tags) ? body.tags.map(String) : [],
       dueAt: typeof body.dueAt === "string" ? body.dueAt : null,
+      deadlineAt: typeof body.deadlineAt === "string" ? body.deadlineAt : null,
+      reminders: cleanReminders(body.reminders),
       repeat: ["daily", "weekly", "monthly", "monthly-weekday"].includes(body.repeat)
         ? body.repeat
         : null,

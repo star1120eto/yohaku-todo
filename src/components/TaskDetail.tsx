@@ -19,6 +19,14 @@ function daysInMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
 }
 
+const REMINDER_OPTIONS = [
+  { value: 0, label: "当日" },
+  { value: 10, label: "10分前" },
+  { value: 30, label: "30分前" },
+  { value: 60, label: "1時間前" },
+  { value: 1440, label: "1日前" },
+];
+
 export default function TaskDetail({
   task,
   folders,
@@ -55,6 +63,16 @@ export default function TaskDetail({
   );
   const [durationMinutes, setDurationMinutes] = useState(task.durationMinutes ?? 0);
   const [showCal, setShowCal] = useState(false);
+  const initDeadline = task.deadlineAt ? new Date(task.deadlineAt) : null;
+  const [deadlineDate, setDeadlineDate] = useState<Date | null>(
+    initDeadline
+      ? new Date(initDeadline.getFullYear(), initDeadline.getMonth(), initDeadline.getDate())
+      : null
+  );
+  const [showDeadlineCal, setShowDeadlineCal] = useState(false);
+  const [reminders, setReminders] = useState<number[]>(
+    task.reminders?.length ? task.reminders : [0]
+  );
   const [repeat, setRepeat] = useState<string>(task.repeat ?? "");
   const [location, setLocation] = useState<TaskLocation | null>(task.location);
   const [locLabel, setLocLabel] = useState(task.location?.label ?? "");
@@ -163,6 +181,13 @@ export default function TaskDetail({
           task.weekOfMonth === -1 && isLast ? -1 : Math.ceil(dom / 7);
       }
 
+      let deadlineAt: string | null = null;
+      if (deadlineDate) {
+        const d = new Date(deadlineDate);
+        d.setHours(23, 59, 0, 0);
+        deadlineAt = d.toISOString();
+      }
+
       await onSave({
         title: title.trim() || task.title,
         note,
@@ -175,6 +200,8 @@ export default function TaskDetail({
         assigneeId: assigneeId || null,
         durationMinutes: durationMinutes || null,
         dueAt,
+        deadlineAt,
+        reminders,
         repeat: (repeat || null) as Task["repeat"],
         weekday,
         weekOfMonth,
@@ -193,6 +220,15 @@ export default function TaskDetail({
         WEEKDAY_JP[dueDate.getDay()]
       })`
     : "未設定";
+  const deadlineLabel = deadlineDate
+    ? `${deadlineDate.getFullYear()}/${deadlineDate.getMonth() + 1}/${deadlineDate.getDate()}(${
+        WEEKDAY_JP[deadlineDate.getDay()]
+      })`
+    : "未設定";
+  const toggleReminder = (v: number) =>
+    setReminders((prev) =>
+      prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v].sort((a, b) => a - b)
+    );
 
   return (
     <Modal title="タスクの詳細" onClose={onClose}>
@@ -256,6 +292,60 @@ export default function TaskDetail({
               onSelect={(d) => {
                 setDueDate(d);
                 setShowCal(false);
+              }}
+            />
+          </div>
+        )}
+        {dueDate && (
+          <div className="flex flex-wrap gap-1.5 mt-2">
+            {REMINDER_OPTIONS.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => toggleReminder(o.value)}
+                className={`rounded-full px-2.5 py-0.5 text-[11px] transition-colors ${
+                  reminders.includes(o.value)
+                    ? "bg-accent text-white"
+                    : "bg-field border border-line text-ink-soft hover:text-ink"
+                }`}
+              >
+                {o.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="mb-4">
+        <span className="block text-xs text-ink-soft mb-1.5">締切</span>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowDeadlineCal((v) => !v)}
+            className={`${inputClass} text-left flex-1`}
+          >
+            {deadlineLabel}
+          </button>
+          {deadlineDate && (
+            <button
+              type="button"
+              onClick={() => {
+                setDeadlineDate(null);
+                setShowDeadlineCal(false);
+              }}
+              className="text-xs text-danger hover:underline shrink-0"
+            >
+              クリア
+            </button>
+          )}
+        </div>
+        {showDeadlineCal && (
+          <div className="mt-2 animate-fade-up">
+            <Calendar
+              value={deadlineDate}
+              onSelect={(d) => {
+                setDeadlineDate(d);
+                setShowDeadlineCal(false);
               }}
             />
           </div>

@@ -39,21 +39,49 @@ export default function Notifier({
   const slackRef = useRef(slackEnabled);
   slackRef.current = slackEnabled;
 
-  // 期日になったタスクの通知 (20秒間隔でチェック)
+  // 期日(+事前リマインダー)・締切の通知 (20秒間隔でチェック)
   useEffect(() => {
     const check = () => {
       const now = Date.now();
       for (const t of tasksRef.current) {
-        if (t.completed || !t.dueAt) continue;
-        const due = new Date(t.dueAt).getTime();
-        if (due > now) continue;
-        // 通知が古くなりすぎたもの(1日以上前)は起動時に鳴らさない
-        if (now - due > 86400000) continue;
-        const key = `yohaku:notified:${t.id}:${t.dueAt}`;
-        if (localStorage.getItem(key)) continue;
-        localStorage.setItem(key, "1");
-        notify("Yohaku ToDo", `「${t.title}」の時間です`);
-        if (slackRef.current) sendSlack(`⏰ 「${t.title}」の時間です`);
+        if (t.completed) continue;
+
+        if (t.dueAt) {
+          const due = new Date(t.dueAt).getTime();
+          for (const offsetMin of t.reminders ?? [0]) {
+            const fireAt = due - offsetMin * 60000;
+            if (fireAt > now) continue;
+            // 通知が古くなりすぎたもの(1日以上前)は起動時に鳴らさない
+            if (now - fireAt > 86400000) continue;
+            const key = `yohaku:notified:${t.id}:${t.dueAt}:${offsetMin}`;
+            if (localStorage.getItem(key)) continue;
+            localStorage.setItem(key, "1");
+            const msg =
+              offsetMin === 0
+                ? `「${t.title}」の時間です`
+                : `⏰ ${offsetMin}分後: ${t.title}`;
+            notify("よはく", msg);
+            if (slackRef.current) sendSlack(`⏰ ${msg}`);
+          }
+        }
+
+        if (t.deadlineAt) {
+          const deadline = new Date(t.deadlineAt);
+          const today = new Date(now);
+          const isToday =
+            deadline.getFullYear() === today.getFullYear() &&
+            deadline.getMonth() === today.getMonth() &&
+            deadline.getDate() === today.getDate();
+          if (isToday && today.getHours() >= 9) {
+            const key = `yohaku:deadline:${t.id}:${t.deadlineAt}`;
+            if (!localStorage.getItem(key)) {
+              localStorage.setItem(key, "1");
+              const msg = `今日が締切: ${t.title}`;
+              notify("よはく", `🚩 ${msg}`);
+              if (slackRef.current) sendSlack(`🚩 ${msg}`);
+            }
+          }
+        }
       }
     };
     check();
@@ -83,7 +111,7 @@ export default function Notifier({
             if (!localStorage.getItem(key)) {
               localStorage.setItem(key, "1");
               const msg = `「${t.location.label || "指定の場所"}」の近くです: ${t.title}`;
-              notify("Yohaku ToDo", msg);
+              notify("よはく", msg);
               if (slackRef.current) sendSlack(`📍 ${msg}`);
             }
           } else if (d > t.location.radius * 1.5) {
