@@ -26,6 +26,7 @@ import TaskDetail from "./TaskDetail";
 import ShareDialog from "./ShareDialog";
 import SettingsDialog from "./SettingsDialog";
 import FilterDialog from "./FilterDialog";
+import Board from "./Board";
 import Notifier from "./Notifier";
 import { applyTheme } from "@/lib/theme";
 import { Field, Modal, PrimaryButton, inputClass } from "./ui";
@@ -62,6 +63,7 @@ export default function App() {
   const { sections, mutate: mutateSections } = useSections(currentFolderId);
   const [addingSection, setAddingSection] = useState(false);
   const [newSectionName, setNewSectionName] = useState("");
+  const [boardMode, setBoardMode] = useState(false);
   const [openTask, setOpenTask] = useState<Task | null>(null);
   const [showShare, setShowShare] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -179,6 +181,21 @@ export default function App() {
     setFilter({ type: "all" });
   }, [wsId]);
 
+  // フォルダごとのリスト/ボード表示設定を復元
+  useEffect(() => {
+    if (currentFolderId) {
+      setBoardMode(localStorage.getItem(`yohaku:view:${currentFolderId}`) === "board");
+    }
+  }, [currentFolderId]);
+
+  const toggleBoardView = () => {
+    if (!currentFolderId) return;
+    setBoardMode((v) => {
+      localStorage.setItem(`yohaku:view:${currentFolderId}`, v ? "list" : "board");
+      return !v;
+    });
+  };
+
   const prefixes = settings?.prefixes ?? DEFAULT_PREFIXES;
   const currentWs = workspaces.find((w) => w.id === wsId) ?? null;
   const memberNameById = useMemo(() => {
@@ -272,13 +289,13 @@ export default function App() {
       );
       return buildTaskTree(withChildren);
     };
+    // 「セクションなし」は未分類タスクがあるときだけ表示。
+    // ユーザーが作成したセクションは、まだタスクが無くても常に列として表示する
     if (bySection.has(null)) {
       groups.push({ section: null, nodes: nodesFor(bySection.get(null)!) });
     }
     for (const s of sections) {
-      if (bySection.has(s.id)) {
-        groups.push({ section: s, nodes: nodesFor(bySection.get(s.id)!) });
-      }
+      groups.push({ section: s, nodes: nodesFor(bySection.get(s.id) ?? []) });
     }
     return groups;
   }, [showSections, active, sections]);
@@ -382,6 +399,11 @@ export default function App() {
   const deleteSection = async (id: string) => {
     await api(`/api/sections/${id}`, "DELETE");
     mutateSections();
+    mutateTasks();
+  };
+
+  const moveTaskToSection = async (taskId: string, sectionId: string | null) => {
+    await api(`/api/tasks/${taskId}`, "PATCH", { sectionId });
     mutateTasks();
   };
 
@@ -547,6 +569,14 @@ export default function App() {
               <h2 className="text-2xl font-normal tracking-tight flex-1">
                 {filterTitle}
               </h2>
+              {!searchOpen && filter.type === "folder" && sections.length > 0 && (
+                <button
+                  onClick={toggleBoardView}
+                  className="text-xs text-ink-faint hover:text-ink transition-colors"
+                >
+                  {boardMode ? "☰ リスト" : "▦ ボード"}
+                </button>
+              )}
               {!searchOpen && filter.type === "folder" && (
                 <button
                   onClick={() => setAddingSection(true)}
@@ -662,7 +692,17 @@ export default function App() {
               </p>
             ) : (
               <>
-                {showSections ? (
+                {showSections && boardMode ? (
+                  <Board
+                    groups={sectionGroups}
+                    memberNameById={memberNameById}
+                    onOpen={setOpenTask}
+                    onMoveTask={moveTaskToSection}
+                    onAddTask={(sectionId, title) => addSectionTask(sectionId, title)}
+                    onRenameSection={renameSection}
+                    onDeleteSection={deleteSection}
+                  />
+                ) : showSections ? (
                   <div className="space-y-7">
                     {sectionGroups.map((g) => (
                       <SectionBlock
