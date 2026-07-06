@@ -90,11 +90,19 @@ export interface SlackConfig {
   webhookUrl: string;
 }
 
+export interface FavoriteItem {
+  type: "folder" | "tag" | "filter";
+  // folder: "<workspaceId>:<folderId>" / tag: タグ名そのもの / filter: savedFilterId
+  ref: string;
+  order: number;
+}
+
 export interface UserSettings {
   userId: string;
   prefixes: ParsePrefixes;
   theme: Theme;
   slack: SlackConfig;
+  favorites: FavoriteItem[];
 }
 
 export const DEFAULT_PREFIXES: ParsePrefixes = {
@@ -110,7 +118,12 @@ export function defaultSettings(userId: string): UserSettings {
     prefixes: { ...DEFAULT_PREFIXES },
     theme: "system",
     slack: { enabled: false, webhookUrl: "" },
+    favorites: [],
   };
+}
+
+export function favoriteKey(type: FavoriteItem["type"], ref: string): string {
+  return `${type}:${ref}`;
 }
 
 export const PRIORITY_LABELS: Record<Priority, string> = {

@@ -71,12 +71,24 @@ export function useTasks(workspaceId: string | null) {
   return { tasks: data?.tasks ?? [], mutate };
 }
 
+export interface ResolvedFavorite {
+  type: "folder" | "tag" | "filter";
+  ref: string;
+  order: number;
+  label: string;
+  workspaceId: string | null;
+}
+
 export function useSettings(enabled: boolean) {
-  const { data, mutate } = useSWR<{ settings: UserSettings }>(
-    enabled ? "/api/settings" : null,
-    fetcher
-  );
-  return { settings: data?.settings ?? null, mutate };
+  const { data, mutate } = useSWR<{
+    settings: UserSettings;
+    resolvedFavorites: ResolvedFavorite[];
+  }>(enabled ? "/api/settings" : null, fetcher);
+  return {
+    settings: data?.settings ?? null,
+    resolvedFavorites: data?.resolvedFavorites ?? [],
+    mutate,
+  };
 }
 
 export function useSavedFilters(enabled: boolean) {
