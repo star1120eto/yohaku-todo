@@ -94,6 +94,7 @@ export type ActivityType =
   | "task.reopen"
   | "task.update"
   | "task.delete"
+  | "task.comment"
   | "folder.create"
   | "folder.delete"
   | "member.join"
@@ -107,6 +108,24 @@ export interface Activity {
   actorId: string;
   type: ActivityType;
   detail: string; // 表示用に組み立て済みの日本語要約
+  createdAt: string;
+}
+
+export interface Attachment {
+  id: string;
+  name: string;
+  size: number;
+  mime: string;
+  data: string; // ファイル本体(base64)。D1の1行JSONにそのまま保持する
+}
+
+export interface Comment {
+  id: string;
+  taskId: string;
+  workspaceId: string;
+  authorId: string;
+  body: string;
+  attachments: Attachment[];
   createdAt: string;
 }
 
@@ -186,4 +205,5 @@ export interface Database {
   savedFilters: SavedFilter[];
   completions: CompletionRecord[];
   activities: Activity[];
+  comments: Comment[];
 }

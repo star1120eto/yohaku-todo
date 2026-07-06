@@ -52,7 +52,7 @@ export default function App() {
   const { workspaces, mutate: mutateWs } = useWorkspaces(!!user);
   const [wsId, setWsId] = useState<string | null>(null);
   const { folders, mutate: mutateFolders } = useFolders(wsId);
-  const { tasks, mutate: mutateTasks } = useTasks(wsId);
+  const { tasks, commentCounts, mutate: mutateTasks } = useTasks(wsId);
   const {
     settings,
     resolvedFavorites,
@@ -792,6 +792,7 @@ export default function App() {
                         assigneeName={
                           n.task.assigneeId ? memberNameById.get(n.task.assigneeId) : undefined
                         }
+                        commentCount={commentCounts[n.task.id] ?? 0}
                         onToggle={toggleTask}
                         onOpen={setOpenTask}
                       />
@@ -819,6 +820,7 @@ export default function App() {
                             assigneeName={
                               n.task.assigneeId ? memberNameById.get(n.task.assigneeId) : undefined
                             }
+                            commentCount={commentCounts[n.task.id] ?? 0}
                             onToggle={toggleTask}
                             onOpen={setOpenTask}
                           />
@@ -841,6 +843,7 @@ export default function App() {
           allTasks={tasks}
           members={currentWs?.members ?? []}
           canEdit={canEditWs}
+          meId={user.id}
           onOpenTask={setOpenTask}
           onTasksChanged={mutateTasks}
           onSave={async (patch) => {

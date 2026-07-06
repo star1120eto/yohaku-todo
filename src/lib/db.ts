@@ -17,6 +17,7 @@ const EMPTY_DB: Database = {
   savedFilters: [],
   completions: [],
   activities: [],
+  comments: [],
 };
 
 let testD1: D1Database | undefined;

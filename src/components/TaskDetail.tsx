@@ -13,6 +13,15 @@ interface GeoResult {
   lng: number;
 }
 
+interface CommentEntry {
+  id: string;
+  authorId: string;
+  authorName: string;
+  body: string;
+  attachments: { id: string; name: string; size: number; mime: string }[];
+  createdAt: string;
+}
+
 const pad = (n: number) => String(n).padStart(2, "0");
 
 function daysInMonth(d: Date) {
@@ -33,6 +42,7 @@ export default function TaskDetail({
   allTasks,
   members = [],
   canEdit = true,
+  meId,
   onOpenTask,
   onTasksChanged,
   onSave,
@@ -44,6 +54,7 @@ export default function TaskDetail({
   allTasks: Task[];
   members?: { id: string; name: string }[];
   canEdit?: boolean;
+  meId?: string;
   onOpenTask: (task: Task) => void;
   onTasksChanged: () => void;
   onSave: (patch: Partial<Task>) => Promise<void>;
@@ -92,6 +103,51 @@ export default function TaskDetail({
   const [history, setHistory] = useState<
     { id: string; actorName: string; detail: string; createdAt: string }[] | null
   >(null);
+  const [comments, setComments] = useState<CommentEntry[] | null>(null);
+  const [commentBody, setCommentBody] = useState("");
+  const [commentFiles, setCommentFiles] = useState<File[]>([]);
+  const [posting, setPosting] = useState(false);
+  const [commentError, setCommentError] = useState("");
+
+  useEffect(() => {
+    let cancelled = false;
+    api(`/api/comments?taskId=${task.id}`, "GET").then((res) => {
+      if (!cancelled) setComments(res.comments);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [task.id]);
+
+  const postComment = async () => {
+    if (!commentBody.trim() && commentFiles.length === 0) return;
+    setPosting(true);
+    setCommentError("");
+    try {
+      const form = new FormData();
+      form.set("taskId", task.id);
+      form.set("body", commentBody.trim());
+      for (const f of commentFiles) form.append("files", f);
+      const res = await fetch("/api/comments", { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "投稿に失敗しました");
+      setComments((prev) => [...(prev ?? []), data.comment]);
+      setCommentBody("");
+      setCommentFiles([]);
+      onTasksChanged(); // コメント数バッジを更新
+    } catch (err) {
+      setCommentError(err instanceof Error ? err.message : "投稿に失敗しました");
+    } finally {
+      setPosting(false);
+    }
+  };
+
+  const deleteComment = async (id: string) => {
+    await api(`/api/comments/${id}`, "DELETE");
+    setComments((prev) => prev?.filter((c) => c.id !== id) ?? null);
+    onTasksChanged();
+  };
 
   const parentTask = task.parentId
     ? allTasks.find((t) => t.id === task.parentId) ?? null
@@ -698,6 +754,119 @@ export default function TaskDetail({
           )}
         </div>
       )}
+
+      <div className="mb-4">
+        <span className="block text-xs text-ink-soft mb-1.5">
+          コメント{comments && comments.length > 0 && ` (${comments.length})`}
+        </span>
+        <ul className="mb-2 space-y-3">
+          {comments === null && <li className="text-xs text-ink-faint">読み込み中…</li>}
+          {comments?.map((c) => (
+            <li key={c.id} className="group">
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-accent-soft text-accent flex items-center justify-center text-[11px] shrink-0">
+                  {c.authorName.slice(0, 1)}
+                </span>
+                <span className="text-xs text-ink-soft">{c.authorName}</span>
+                <span className="text-[11px] text-ink-faint">{formatRelative(c.createdAt)}</span>
+                {c.authorId === meId && (
+                  <button
+                    onClick={() => deleteComment(c.id)}
+                    className="ml-auto text-[11px] text-ink-faint hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    削除
+                  </button>
+                )}
+              </div>
+              {c.body && (
+                <p className="text-sm text-ink pl-8 mt-0.5 whitespace-pre-wrap">{c.body}</p>
+              )}
+              {c.attachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 pl-8 mt-1">
+                  {c.attachments.map((a) => (
+                    <a
+                      key={a.id}
+                      href={`/api/files/${c.id}/${a.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block"
+                    >
+                      {a.mime.startsWith("image/") ? (
+                        <img
+                          src={`/api/files/${c.id}/${a.id}`}
+                          alt={a.name}
+                          className="h-16 w-16 object-cover rounded-lg border border-line"
+                        />
+                      ) : (
+                        <span className="text-xs text-accent hover:underline rounded-lg border border-line px-2 py-1 inline-block">
+                          📎 {a.name}
+                        </span>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </li>
+          ))}
+          {comments?.length === 0 && (
+            <li className="text-xs text-ink-faint">まだコメントはありません</li>
+          )}
+        </ul>
+        <div className="rounded-lg border border-line p-2">
+          <textarea
+            className="w-full bg-transparent text-sm resize-y min-h-[52px] placeholder:text-ink-faint"
+            placeholder="コメントを入力（Cmd/Ctrl+Enterで送信）"
+            value={commentBody}
+            onChange={(e) => setCommentBody(e.target.value)}
+            onKeyDown={(e) => {
+              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                e.preventDefault();
+                postComment();
+              }
+            }}
+          />
+          {commentFiles.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-1.5">
+              {commentFiles.map((f, i) => (
+                <span
+                  key={i}
+                  className="text-[11px] text-ink-soft rounded-full bg-field border border-line px-2 py-0.5"
+                >
+                  {f.name}
+                  <button
+                    type="button"
+                    onClick={() => setCommentFiles((prev) => prev.filter((_, x) => x !== i))}
+                    className="ml-1 text-ink-faint hover:text-danger"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="flex items-center justify-between mt-2">
+            <label className="text-ink-faint hover:text-ink cursor-pointer text-sm">
+              📎
+              <input
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  const files = Array.from(e.target.files ?? []).slice(0, 3);
+                  setCommentFiles(files);
+                }}
+              />
+            </label>
+            <PrimaryButton
+              onClick={postComment}
+              disabled={posting || (!commentBody.trim() && commentFiles.length === 0)}
+            >
+              送信
+            </PrimaryButton>
+          </div>
+          {commentError && <p className="text-xs text-danger mt-1.5">{commentError}</p>}
+        </div>
+      </div>
 
       <div className="mb-4">
         <button

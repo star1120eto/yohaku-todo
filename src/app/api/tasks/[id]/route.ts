@@ -234,7 +234,13 @@ export async function DELETE(_req: Request, { params }: Params) {
     if (!ws || !isMember(ws, user.id)) return "notfound";
     if (!canEdit(ws, user.id)) return "forbidden";
     // 子タスクも同時に削除する
-    db.tasks = db.tasks.filter((x) => x.id !== id && x.parentId !== id);
+    const childIds = db.tasks.filter((x) => x.parentId === id).map((x) => x.id);
+    const removedIds = new Set([id, ...childIds]);
+    db.tasks = db.tasks.filter((x) => !removedIds.has(x.id));
+
+    // コメント(添付ファイルはコメント内にbase64で保持しているため、コメントごと消せば十分)
+    db.comments = db.comments.filter((c) => !removedIds.has(c.taskId));
+
     logActivity(db, {
       workspaceId: t.workspaceId,
       taskId: null,

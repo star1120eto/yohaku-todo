@@ -19,6 +19,7 @@ export default function TaskItem({
   childCount = 0,
   completedChildCount = 0,
   assigneeName,
+  commentCount = 0,
 }: {
   task: Task;
   onToggle: (task: Task) => void;
@@ -27,6 +28,7 @@ export default function TaskItem({
   childCount?: number;
   completedChildCount?: number;
   assigneeName?: string;
+  commentCount?: number;
 }) {
   const overdue = !task.completed && task.dueAt && isOverdue(task.dueAt);
 
@@ -84,7 +86,8 @@ export default function TaskItem({
           task.tags.length > 0 ||
           task.repeat ||
           task.location ||
-          task.durationMinutes) && (
+          task.durationMinutes ||
+          commentCount > 0) && (
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 mt-1 text-[11px] text-ink-faint">
             {task.dueAt && (
               <span className={overdue ? "text-danger" : ""}>
@@ -104,6 +107,7 @@ export default function TaskItem({
             {task.tags.map((t) => (
               <Tag key={t} name={t} />
             ))}
+            {commentCount > 0 && <span>💬 {commentCount}</span>}
           </div>
         )}
       </button>
