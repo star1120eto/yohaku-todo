@@ -2,14 +2,7 @@
 
 import { useState } from "react";
 import { WEEKDAY_JP, weekdayColor } from "@/lib/format";
-
-function sameDay(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
+import { monthCells, sameDay } from "@/lib/calendar";
 
 export default function Calendar({
   value,
@@ -25,14 +18,8 @@ export default function Calendar({
 
   const year = view.getFullYear();
   const month = view.getMonth();
-  const firstDow = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const cells = monthCells(year, month);
   const today = new Date();
-
-  const cells: (number | null)[] = [];
-  for (let i = 0; i < firstDow; i++) cells.push(null);
-  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
-  while (cells.length % 7 !== 0) cells.push(null);
 
   const shift = (delta: number) =>
     setView(new Date(year, month + delta, 1));
@@ -70,9 +57,8 @@ export default function Calendar({
       </div>
 
       <div className="grid grid-cols-7 gap-y-0.5 text-center text-sm">
-        {cells.map((d, i) => {
-          if (d === null) return <div key={i} />;
-          const date = new Date(year, month, d);
+        {cells.map((date, i) => {
+          if (date === null) return <div key={i} />;
           const dow = date.getDay();
           const selected = value && sameDay(date, value);
           const isToday = sameDay(date, today);
@@ -87,7 +73,7 @@ export default function Calendar({
                   : `hover:bg-accent-soft ${weekdayColor(dow)}`
               } ${isToday && !selected ? "ring-1 ring-accent/40" : ""}`}
             >
-              {d}
+              {date.getDate()}
             </button>
           );
         })}
