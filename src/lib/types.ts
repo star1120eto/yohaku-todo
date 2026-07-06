@@ -129,6 +129,27 @@ export interface Comment {
   createdAt: string;
 }
 
+export interface TemplateItem {
+  title: string;
+  note: string;
+  priority: Priority;
+  tags: string[];
+  relDays: number | null; // 生成日からの相対日数(期日なしは null)
+  time: string | null; // "HH:mm"(relDays があるときのみ有効)
+  repeat: Repeat;
+  weekday: number | null;
+  weekOfMonth: number | null;
+  parentIndex: number | null; // items 配列内の親の添字(サブタスク対応)
+}
+
+export interface Template {
+  id: string;
+  ownerId: string;
+  name: string;
+  items: TemplateItem[];
+  createdAt: string;
+}
+
 export interface SavedFilter {
   id: string;
   userId: string; // フィルターは個人所有(ワークスペース非依存)
@@ -206,4 +227,5 @@ export interface Database {
   completions: CompletionRecord[];
   activities: Activity[];
   comments: Comment[];
+  templates: Template[];
 }

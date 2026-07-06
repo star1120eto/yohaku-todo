@@ -7,6 +7,7 @@ import type {
   SavedFilter,
   Section,
   Task,
+  Template,
   User,
   UserSettings,
   Workspace,
@@ -108,4 +109,12 @@ export function useSavedFilters(enabled: boolean) {
     fetcher
   );
   return { filters: data?.filters ?? [], mutate };
+}
+
+export function useTemplates(enabled: boolean) {
+  const { data, mutate } = useSWR<{ templates: Template[] }>(
+    enabled ? "/api/templates" : null,
+    fetcher
+  );
+  return { templates: data?.templates ?? [], mutate };
 }

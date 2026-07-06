@@ -18,6 +18,7 @@ const EMPTY_DB: Database = {
   completions: [],
   activities: [],
   comments: [],
+  templates: [],
 };
 
 let testD1: D1Database | undefined;
