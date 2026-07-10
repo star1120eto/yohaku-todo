@@ -158,6 +158,31 @@ export default function Sidebar({
           </div>
         )}
 
+        {favorites.length > 0 && (
+          <div className="mb-4">
+            <div className="text-[11px] text-ink-faint px-3 pb-1.5">お気に入り</div>
+            <ul className="space-y-0.5">
+              {favorites.map((f) => {
+                const active =
+                  (f.type === "folder" &&
+                    filter.type === "folder" &&
+                    filter.folderId === f.ref.split(":")[1] &&
+                    currentWorkspaceId === f.workspaceId) ||
+                  (f.type === "tag" && filter.type === "tag" && filter.tag === f.ref) ||
+                  (f.type === "filter" && filter.type === "saved" && filter.filterId === f.ref);
+                return (
+                  <li key={`${f.type}:${f.ref}`}>
+                    <NavButton active={active} onClick={() => onSelectFavorite(f)}>
+                      {f.type === "folder" ? "📁" : f.type === "filter" ? "🔎" : "#"}{" "}
+                      {f.label}
+                    </NavButton>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        )}
+
         <div className="text-[11px] text-ink-faint px-3 pb-1.5 flex items-center justify-between">
           <span>ワークスペース</span>
           <span className="flex gap-2">
