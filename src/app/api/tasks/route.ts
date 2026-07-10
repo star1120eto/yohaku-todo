@@ -4,6 +4,7 @@ import { notifyUserSlack } from "@/lib/slack";
 import { logActivity } from "@/lib/activity";
 import { syncTaskToGoogle } from "@/lib/gcal";
 import { dispatchWebhooks } from "@/lib/webhook";
+import { backgroundTask } from "@/lib/runtime";
 import type { Task } from "@/lib/types";
 
 function cleanDuration(v: unknown): number | null {
@@ -54,6 +55,7 @@ export async function POST(req: Request) {
   if (!title) return jsonError("タイトルを入力してください", 400);
 
   const now = new Date().toISOString();
+  let slackNotify: Promise<void> | null = null;
   type Result = "notfound" | "forbidden" | Task;
   const result = await updateDb<Result>((db) => {
     const ws = db.workspaces.find((w) => w.id === workspaceId);
@@ -128,7 +130,7 @@ export async function POST(req: Request) {
     };
     db.tasks.push(t);
     if (t.assigneeId && t.assigneeId !== user.id) {
-      notifyUserSlack(db, t.assigneeId, `👤 「${t.title}」があなたに割り当てられました`);
+      slackNotify = notifyUserSlack(db, t.assigneeId, `👤 「${t.title}」があなたに割り当てられました`);
     }
     logActivity(db, {
       workspaceId,
@@ -142,9 +144,12 @@ export async function POST(req: Request) {
 
   if (result === "notfound") return jsonError("ワークスペースが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では追加できません", 403);
-  syncTaskToGoogle(user.id, result).catch(() => {});
-  readDb()
-    .then((db) => dispatchWebhooks(db, result.workspaceId, "task.create", result))
-    .catch(() => {});
+  if (slackNotify) await backgroundTask(slackNotify);
+  await backgroundTask(syncTaskToGoogle(user.id, result).catch(() => {}));
+  await backgroundTask(
+    readDb()
+      .then((db) => dispatchWebhooks(db, result.workspaceId, "task.create", result))
+      .catch(() => {})
+  );
   return Response.json({ task: result });
 }

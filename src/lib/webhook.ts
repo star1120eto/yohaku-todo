@@ -32,7 +32,9 @@ export function isSafeWebhookUrl(urlStr: string): boolean {
     return false;
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") return false;
-  const host = u.hostname.toLowerCase();
+  // IPv6リテラルはURLのhostnameで "[::1]" のように角括弧付きになるため、
+  // isPrivateIp/isIpLiteral へ渡す前に取り除く。
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (host === "localhost" || host.endsWith(".local")) return false;
   if (isIpLiteral(host)) return !isPrivateIp(host);
   return true;

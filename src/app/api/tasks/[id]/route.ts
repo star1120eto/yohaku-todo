@@ -5,6 +5,7 @@ import { notifyUserSlack } from "@/lib/slack";
 import { logActivity } from "@/lib/activity";
 import { syncTaskToGoogle } from "@/lib/gcal";
 import { dispatchWebhooks } from "@/lib/webhook";
+import { backgroundTask } from "@/lib/runtime";
 import type { Task } from "@/lib/types";
 
 function cleanDuration(v: unknown): number | null {
@@ -31,6 +32,7 @@ export async function PATCH(req: Request, { params }: Params) {
   const { id } = await params;
   const body = await req.json().catch(() => ({}));
 
+  let slackNotify: Promise<void> | null = null;
   type Result = "notfound" | "forbidden" | { task: Task; event: "task.update" | "task.complete" | null };
   const result = await updateDb<Result>((db) => {
     const t = db.tasks.find((x) => x.id === id);
@@ -144,7 +146,7 @@ export async function PATCH(req: Request, { params }: Params) {
       if (nextAssignee !== t.assigneeId) {
         t.assigneeId = nextAssignee;
         if (nextAssignee && nextAssignee !== user.id) {
-          notifyUserSlack(db, nextAssignee, `👤 「${t.title}」があなたに割り当てられました`);
+          slackNotify = notifyUserSlack(db, nextAssignee, `👤 「${t.title}」があなたに割り当てられました`);
         }
       }
     }
@@ -222,12 +224,15 @@ export async function PATCH(req: Request, { params }: Params) {
 
   if (result === "notfound") return jsonError("タスクが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では変更できません", 403);
-  syncTaskToGoogle(user.id, result.task).catch(() => {});
+  if (slackNotify) await backgroundTask(slackNotify);
+  await backgroundTask(syncTaskToGoogle(user.id, result.task).catch(() => {}));
   if (result.event) {
     const event = result.event;
-    readDb()
-      .then((db) => dispatchWebhooks(db, result.task.workspaceId, event, result.task))
-      .catch(() => {});
+    await backgroundTask(
+      readDb()
+        .then((db) => dispatchWebhooks(db, result.task.workspaceId, event, result.task))
+        .catch(() => {})
+    );
   }
   return Response.json({ task: result.task });
 }
@@ -265,15 +270,17 @@ export async function DELETE(_req: Request, { params }: Params) {
 
   if (result === "notfound") return jsonError("タスクが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では削除できません", 403);
-  readDb()
-    .then(async (db) => {
-      for (const t of result.removed) {
-        await dispatchWebhooks(db, t.workspaceId, "task.delete", t);
-      }
-    })
-    .catch(() => {});
+  await backgroundTask(
+    readDb()
+      .then(async (db) => {
+        for (const t of result.removed) {
+          await dispatchWebhooks(db, t.workspaceId, "task.delete", t);
+        }
+      })
+      .catch(() => {})
+  );
   for (const t of result.removed) {
-    syncTaskToGoogle(user.id, t, true).catch(() => {});
+    await backgroundTask(syncTaskToGoogle(user.id, t, true).catch(() => {}));
   }
   return Response.json({ ok: true });
 }
