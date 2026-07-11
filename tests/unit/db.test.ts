@@ -24,17 +24,25 @@ afterAll(() => {
 });
 
 describe("readDb", () => {
-  it("ファイルが無ければ空のデータベース(全コレクションが空配列)を返す", () => {
-    const data = db.readDb() as Record<string, unknown>;
-    // 中核コレクションが存在すること
-    for (const key of ["users", "workspaces", "folders", "tasks", "settings"]) {
-      expect(data[key]).toEqual([]);
-    }
-    // スキーマが拡張されても、全コレクションが空配列であること
-    for (const value of Object.values(data)) {
-      expect(Array.isArray(value)).toBe(true);
-      expect(value as unknown[]).toHaveLength(0);
-    }
+  it("ファイルが無ければ空のデータベースを返す", () => {
+    const data = db.readDb();
+    expect(data).toEqual({
+      users: [],
+      workspaces: [],
+      folders: [],
+      sections: [],
+      tasks: [],
+      settings: [],
+      savedFilters: [],
+      completions: [],
+      activities: [],
+      comments: [],
+      templates: [],
+      googleAccounts: [],
+      gcalEventLinks: [],
+      apiTokens: [],
+      webhooks: [],
+    });
   });
 });
 
