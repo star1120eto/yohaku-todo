@@ -494,6 +494,40 @@ export default function App() {
     mutateTemplates();
   };
 
+  const importCsv = async (file: File) => {
+    if (!wsId) return;
+    const defaultName = file.name.replace(/\.csv$/i, "");
+    const folderName = prompt("作成するフォルダ名", defaultName);
+    if (!folderName || !folderName.trim()) return;
+    const form = new FormData();
+    form.set("workspaceId", wsId);
+    form.set("folderName", folderName.trim());
+    form.set("file", file);
+    try {
+      const res = await fetch("/api/import/csv", { method: "POST", body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "インポートに失敗しました");
+      mutateFolders();
+      mutateTasks();
+      alert(`「${data.folder.name}」に${data.tasksCount}件のタスクをインポートしました`);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "インポートに失敗しました");
+    }
+  };
+
+  const exportFolderCsv = (folderId: string) => {
+    // サーバーの Content-Disposition ヘッダーでファイル名・ダウンロード扱いを制御するため、
+    // fetch+Blob は使わずエンドポイントへ直接遷移する。失敗時に現在のページを失わないよう
+    // 新しいタブで開く。
+    const a = document.createElement("a");
+    a.href = `/api/export/csv?folderId=${encodeURIComponent(folderId)}`;
+    a.target = "_blank";
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   const isFavorite = (type: "folder" | "tag" | "filter", ref: string) =>
     (settings?.favorites ?? []).some(
       (f) => favoriteKey(f.type, f.ref) === favoriteKey(type, ref)
@@ -626,6 +660,8 @@ export default function App() {
           onApplyTemplate={applyTemplate}
           onRenameTemplate={renameTemplate}
           onDeleteTemplate={deleteTemplate}
+          onImportCsv={importCsv}
+          onExportFolderCsv={exportFolderCsv}
         />
       </aside>
       {sidebarOpen && (
