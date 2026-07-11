@@ -1,9 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { createHmac } from "node:crypto";
 import { createServer, type Server, type IncomingMessage } from "node:http";
-import { networkInterfaces } from "node:os";
 import type { D1Database, D1ExecResult, D1Result } from "@cloudflare/workers-types";
-import { isSafeWebhookUrl, dispatchWebhooks } from "@/lib/webhook";
+import {
+  isSafeWebhookUrl,
+  dispatchWebhooks,
+  __allowLoopbackWebhooksForTesting,
+} from "@/lib/webhook";
 import * as db from "@/lib/db";
 import type { Task, Webhook } from "@/lib/types";
 
@@ -40,18 +43,6 @@ function createFakeD1(): D1Database {
     },
     exec: async () => ({}) as D1ExecResult,
   } as unknown as D1Database;
-}
-
-// このコンテナ自身に割り当てられた非ループバックIPv4アドレスを取得する。
-// isSafeWebhookUrl はループバック/プライベートIPのみ弾くため、実マシンのIP宛なら
-// 本物のHTTPサーバーへ本物のfetchでPOSTさせて配信ロジックを検証できる(fetchはモックしない)。
-function ownIpv4(): string {
-  for (const addrs of Object.values(networkInterfaces())) {
-    for (const a of addrs ?? []) {
-      if (a.family === "IPv4" && !a.internal) return a.address;
-    }
-  }
-  throw new Error("non-internal IPv4 address not found");
 }
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -131,6 +122,10 @@ describe("dispatchWebhooks", () => {
 
   beforeEach(async () => {
     db.__setD1ForTesting(createFakeD1());
+    // 実行環境(サンドボックス/CI)によって自マシンのIPアドレスの範囲が変わり、
+    // isSafeWebhookUrlのSSRFガードに弾かれたり弾かれなかったりして不安定になるため、
+    // ループバック(127.0.0.1)に固定し、テスト専用フックでガードだけ迂回する。
+    __allowLoopbackWebhooksForTesting(true);
     received = null;
     server = createServer((req, res) => {
       const chunks: Buffer[] = [];
@@ -141,16 +136,16 @@ describe("dispatchWebhooks", () => {
         res.end("ok");
       });
     });
-    const host = ownIpv4();
-    await new Promise<void>((resolve) => server.listen(0, host, resolve));
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("server not listening");
-    webhookUrl = `http://${host}:${address.port}/hook`;
+    webhookUrl = `http://127.0.0.1:${address.port}/hook`;
   });
 
   afterEach(async () => {
     await new Promise<void>((resolve) => server.close(() => resolve()));
     db.__setD1ForTesting(undefined);
+    __allowLoopbackWebhooksForTesting(false);
   });
 
   it("登録したイベントに一致するWebhookへ、HMAC-SHA256署名付きで実際にPOSTする", async () => {
@@ -248,7 +243,9 @@ describe("dispatchWebhooks", () => {
       id: "wh4",
       userId: "u1",
       workspaceId: "w1",
-      url: "http://127.0.0.1:1/hook",
+      // 127.0.0.1はテスト専用フックの対象なので、フックの対象外である
+      // 別のプライベートIP(10.x)で本来のSSRFガードが効くことを確認する
+      url: "http://10.0.0.1:1/hook",
       secret: "s",
       events: ["task.complete"],
       createdAt: "2026-06-01T00:00:00.000Z",

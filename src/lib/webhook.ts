@@ -40,6 +40,13 @@ export function isSafeWebhookUrl(urlStr: string): boolean {
   return true;
 }
 
+// テスト専用: dispatchWebhooks の実配信テストのため、127.0.0.1宛だけ
+// SSRFガードを迂回できるようにする(本番のisSafeWebhookUrl自体の挙動は変えない)。
+let allowLoopbackForTesting = false;
+export function __allowLoopbackWebhooksForTesting(allow: boolean): void {
+  allowLoopbackForTesting = allow;
+}
+
 function taskPayload(task: Task) {
   return {
     id: task.id,
@@ -84,7 +91,8 @@ export async function dispatchWebhooks(
 
   await Promise.all(
     targets.map(async (w) => {
-      if (!isSafeWebhookUrl(w.url)) return;
+      const loopback = allowLoopbackForTesting && new URL(w.url).hostname === "127.0.0.1";
+      if (!isSafeWebhookUrl(w.url) && !loopback) return;
       const signature = await hmacSha256Hex(w.secret, body);
       let status: number | null = null;
       try {
