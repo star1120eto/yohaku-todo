@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Folder, SavedFilter, Template } from "@/lib/types";
 import type { ResolvedFavorite, WorkspaceWithMembers } from "@/hooks/useData";
 
@@ -94,6 +94,8 @@ export default function Sidebar({
   onApplyTemplate,
   onRenameTemplate,
   onDeleteTemplate,
+  onImportCsv,
+  onExportFolderCsv,
 }: {
   workspaces: WorkspaceWithMembers[];
   currentWorkspaceId: string | null;
@@ -123,8 +125,11 @@ export default function Sidebar({
   onApplyTemplate: (template: Template) => void;
   onRenameTemplate: (template: Template) => void;
   onDeleteTemplate: (id: string) => void;
+  onImportCsv: (file: File) => void;
+  onExportFolderCsv: (folderId: string) => void;
 }) {
   const [newFolder, setNewFolder] = useState("");
+  const importInputRef = useRef<HTMLInputElement>(null);
   const [addingFolder, setAddingFolder] = useState(false);
   const current = workspaces.find((w) => w.id === currentWorkspaceId);
 
@@ -232,7 +237,27 @@ export default function Sidebar({
       <div className="px-3 pb-4" data-testid="folders">
         <div className="text-[11px] text-ink-faint px-3 pb-1.5 flex items-center justify-between">
           <span>フォルダ</span>
-          <button onClick={() => setAddingFolder(true)} className="hover:text-ink" title="フォルダを追加">＋</button>
+          <span className="flex gap-2">
+            <button
+              onClick={() => importInputRef.current?.click()}
+              className="hover:text-ink"
+              title="CSVをインポート"
+            >
+              📥
+            </button>
+            <button onClick={() => setAddingFolder(true)} className="hover:text-ink" title="フォルダを追加">＋</button>
+          </span>
+          <input
+            ref={importInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) onImportCsv(file);
+              e.target.value = "";
+            }}
+          />
         </div>
         <ul className="space-y-0.5">
           {folders.map((f) => (
@@ -246,6 +271,13 @@ export default function Sidebar({
                       active={isFavorite("folder", `${currentWorkspaceId}:${f.id}`)}
                       onClick={() => onToggleFavorite("folder", `${currentWorkspaceId}:${f.id}`)}
                     />
+                    <button
+                      onClick={() => onExportFolderCsv(f.id)}
+                      className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
+                      title="CSVでエクスポート"
+                    >
+                      📤
+                    </button>
                     <button
                       onClick={() => onSaveFolderAsTemplate(f.id, f.name)}
                       className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"

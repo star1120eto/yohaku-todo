@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "next": "^15.3.3",
+    "papaparse": "^5.5.4",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "swr": "^2.3.3"
@@ -33,6 +34,7 @@
     "@opennextjs/cloudflare": "^1.20.1",
     "@playwright/test": "^1.61.0",
     "@types/node": "^22.15.0",
+    "@types/papaparse": "^5.5.2",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
     "autoprefixer": "^10.4.21",
