@@ -2,6 +2,7 @@ import { readDb, updateDb, newId } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { notifyUserSlack } from "@/lib/slack";
+import { backgroundTask } from "@/lib/runtime";
 import { arrayBufferToBase64 } from "@/lib/base64";
 import type { Attachment } from "@/lib/types";
 
@@ -73,6 +74,7 @@ export async function POST(req: Request) {
     });
   }
 
+  const slackNotifies: Promise<void>[] = [];
   const comment = await updateDb((db2) => {
     const c = {
       id: newId(),
@@ -88,7 +90,9 @@ export async function POST(req: Request) {
     // 投稿者以外のワークスペースメンバーのうち、Slack通知が有効な人に通知
     const members = [ws.ownerId, ...ws.memberIds].filter((id) => id !== user.id);
     for (const memberId of members) {
-      notifyUserSlack(db2, memberId, `💬 「${task.title}」に ${user.name} がコメントしました`);
+      slackNotifies.push(
+        notifyUserSlack(db2, memberId, `💬 「${task.title}」に ${user.name} がコメントしました`)
+      );
     }
 
     logActivity(db2, {
@@ -100,6 +104,8 @@ export async function POST(req: Request) {
     });
     return c;
   });
+
+  if (slackNotifies.length) await backgroundTask(Promise.all(slackNotifies));
 
   return Response.json({ comment: { ...comment, authorName: user.name } });
 }

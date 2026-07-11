@@ -3,6 +3,7 @@ import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { syncTaskToGoogle } from "@/lib/gcal";
 import { dispatchWebhooks } from "@/lib/webhook";
+import { backgroundTask } from "@/lib/runtime";
 import type { Task } from "@/lib/types";
 
 // 外部連携用API。`Authorization: Bearer <トークン>` でのみ認証する(Cookieセッションは使わない)。
@@ -80,9 +81,11 @@ export async function POST(req: Request) {
 
   if (result === "notfound") return jsonError("ワークスペースが見つかりません", 404);
   if (result === "forbidden") return jsonError("閲覧のみの権限では追加できません", 403);
-  syncTaskToGoogle(user.id, result).catch(() => {});
-  readDb()
-    .then((db) => dispatchWebhooks(db, result.workspaceId, "task.create", result))
-    .catch(() => {});
+  await backgroundTask(syncTaskToGoogle(user.id, result).catch(() => {}));
+  await backgroundTask(
+    readDb()
+      .then((db) => dispatchWebhooks(db, result.workspaceId, "task.create", result))
+      .catch(() => {})
+  );
   return Response.json({ task: result }, { status: 201 });
 }

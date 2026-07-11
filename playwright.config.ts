@@ -16,6 +16,8 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
   reporter: [["list"], ["html", { open: "never" }]],
+  // wrangler dev 経由のローカル D1 はネイティブ実行より遅くなることがあるため、既定より少し長めに待つ
+  expect: { timeout: 10_000 },
   use: {
     baseURL,
     trace: "on-first-retry",

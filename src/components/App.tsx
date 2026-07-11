@@ -324,7 +324,7 @@ export default function App() {
   if (isLoading) {
     return (
       <main className="min-h-dvh flex items-center justify-center">
-        <span className="font-serif text-lg tracking-tight text-ink-faint">Yohaku ToDo</span>
+        <span className="font-serif text-lg tracking-[0.14em] text-ink-faint">よはく</span>
       </main>
     );
   }

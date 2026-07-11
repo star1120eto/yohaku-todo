@@ -131,12 +131,10 @@ export default function Sidebar({
   return (
     <div className="flex flex-col h-full">
       <div className="px-3 pt-1 pb-4">
-        <h1 className="font-serif text-2xl tracking-tight px-3 pb-5">
-          Yohaku<span className="text-ink-faint font-normal text-lg"> ToDo</span>
-        </h1>
+        <h1 className="font-serif text-2xl tracking-[0.14em] px-3 pb-5">よはく</h1>
 
         {favorites.length > 0 && (
-          <div className="mb-4">
+          <div className="mb-4" data-testid="favorites">
             <div className="text-[11px] text-ink-faint px-3 pb-1.5">お気に入り</div>
             <ul className="space-y-0.5">
               {favorites.map((f) => {
@@ -231,7 +229,7 @@ export default function Sidebar({
         </ul>
       </div>
 
-      <div className="px-3 pb-4">
+      <div className="px-3 pb-4" data-testid="folders">
         <div className="text-[11px] text-ink-faint px-3 pb-1.5 flex items-center justify-between">
           <span>フォルダ</span>
           <button onClick={() => setAddingFolder(true)} className="hover:text-ink" title="フォルダを追加">＋</button>
@@ -343,7 +341,7 @@ export default function Sidebar({
       </div>
 
       {templates.length > 0 && (
-        <div className="px-3 pb-4">
+        <div className="px-3 pb-4" data-testid="templates">
           <div className="text-[11px] text-ink-faint px-3 pb-1.5">テンプレート</div>
           <ul className="space-y-0.5">
             {templates.map((t) => (

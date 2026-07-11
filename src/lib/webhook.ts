@@ -32,10 +32,19 @@ export function isSafeWebhookUrl(urlStr: string): boolean {
     return false;
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") return false;
-  const host = u.hostname.toLowerCase();
+  // IPv6リテラルはURLのhostnameで "[::1]" のように角括弧付きになるため、
+  // isPrivateIp/isIpLiteral へ渡す前に取り除く。
+  const host = u.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   if (host === "localhost" || host.endsWith(".local")) return false;
   if (isIpLiteral(host)) return !isPrivateIp(host);
   return true;
+}
+
+// テスト専用: dispatchWebhooks の実配信テストのため、127.0.0.1宛だけ
+// SSRFガードを迂回できるようにする(本番のisSafeWebhookUrl自体の挙動は変えない)。
+let allowLoopbackForTesting = false;
+export function __allowLoopbackWebhooksForTesting(allow: boolean): void {
+  allowLoopbackForTesting = allow;
 }
 
 function taskPayload(task: Task) {
@@ -82,7 +91,8 @@ export async function dispatchWebhooks(
 
   await Promise.all(
     targets.map(async (w) => {
-      if (!isSafeWebhookUrl(w.url)) return;
+      const loopback = allowLoopbackForTesting && new URL(w.url).hostname === "127.0.0.1";
+      if (!isSafeWebhookUrl(w.url) && !loopback) return;
       const signature = await hmacSha256Hex(w.secret, body);
       let status: number | null = null;
       try {

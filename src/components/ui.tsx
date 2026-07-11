@@ -26,7 +26,12 @@ export function Modal({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-card shadow-pop animate-fade-up">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        className="w-full sm:max-w-lg max-h-[90vh] overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-card shadow-pop animate-fade-up"
+      >
         <div className="flex items-center justify-between px-6 pt-5 pb-1">
           <h2 className="text-base font-medium tracking-wide">{title}</h2>
           <button

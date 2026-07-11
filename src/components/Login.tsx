@@ -45,8 +45,8 @@ export default function Login({ onLogin }: { onLogin: () => void }) {
     <main className="min-h-dvh flex items-center justify-center px-6">
       <div className="w-full max-w-sm animate-fade-up">
         <div className="text-center">
-          <h1 className="font-serif text-[2.75rem] leading-none tracking-tight mb-4">
-            Yohaku<span className="text-ink-faint font-normal"> ToDo</span>
+          <h1 className="font-serif text-[2.75rem] leading-none tracking-[0.14em] mb-4">
+            よはく
           </h1>
           <p className="text-sm text-ink-soft mb-8 leading-7">
             余白を大切にする、静かな ToDo。
