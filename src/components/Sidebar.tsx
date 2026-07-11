@@ -3,6 +3,14 @@
 import { useRef, useState } from "react";
 import type { Folder, SavedFilter, Template } from "@/lib/types";
 import type { ResolvedFavorite, WorkspaceWithMembers } from "@/hooks/useData";
+import {
+  DescriptionIcon,
+  EditIcon,
+  FolderIcon,
+  LockIcon,
+  SearchIcon,
+  StarIcon,
+} from "./icons";
 
 export type Filter =
   | { type: "all" }
@@ -30,7 +38,7 @@ function StarButton({
           : "text-ink-faint opacity-0 group-hover:opacity-100 hover:text-[#c79a4e]"
       }`}
     >
-      {active ? "★" : "☆"}
+      <StarIcon filled={active} size={13} />
     </button>
   );
 }
@@ -153,8 +161,16 @@ export default function Sidebar({
                 return (
                   <li key={`${f.type}:${f.ref}`}>
                     <NavButton active={active} onClick={() => onSelectFavorite(f)}>
-                      {f.type === "folder" ? "📁" : f.type === "filter" ? "🔎" : "#"}{" "}
-                      {f.label}
+                      <span className="inline-flex items-center gap-1.5">
+                        {f.type === "folder" ? (
+                          <FolderIcon size={13} />
+                        ) : f.type === "filter" ? (
+                          <SearchIcon size={13} />
+                        ) : (
+                          "#"
+                        )}
+                        {f.label}
+                      </span>
                     </NavButton>
                   </li>
                 );
@@ -195,7 +211,9 @@ export default function Sidebar({
               >
                 {w.name}
                 {w.private && (
-                  <span className="ml-1.5 text-[10px] text-ink-faint">🔒</span>
+                  <span className="ml-1.5 inline-flex text-ink-faint align-middle">
+                    <LockIcon size={10} />
+                  </span>
                 )}
                 {!w.private && w.members.length > 1 && (
                   <span className="ml-1.5 text-[10px] text-ink-faint">
@@ -283,7 +301,7 @@ export default function Sidebar({
                       className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
                       title="テンプレートとして保存"
                     >
-                      📄
+                      <DescriptionIcon size={13} />
                     </button>
                     <button
                       onClick={() => {
@@ -299,7 +317,10 @@ export default function Sidebar({
                   </span>
                 }
               >
-                📁 {f.name}
+                <span className="inline-flex items-center gap-1.5">
+                  <FolderIcon size={13} />
+                  {f.name}
+                </span>
               </NavButton>
             </li>
           ))}
@@ -349,7 +370,7 @@ export default function Sidebar({
                       className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
                       title="編集"
                     >
-                      ✎
+                      <EditIcon size={13} />
                     </button>
                     <button
                       onClick={() => {
@@ -365,7 +386,10 @@ export default function Sidebar({
                   </span>
                 }
               >
-                🔎 {f.name}
+                <span className="inline-flex items-center gap-1.5">
+                  <SearchIcon size={13} />
+                  {f.name}
+                </span>
               </NavButton>
             </li>
           ))}
@@ -388,7 +412,7 @@ export default function Sidebar({
                         className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
                         title="名前を変更"
                       >
-                        ✎
+                        <EditIcon size={13} />
                       </button>
                       <button
                         onClick={() => {
@@ -404,7 +428,10 @@ export default function Sidebar({
                     </span>
                   }
                 >
-                  📄 {t.name}
+                  <span className="inline-flex items-center gap-1.5">
+                    <DescriptionIcon size={13} />
+                    {t.name}
+                  </span>
                 </NavButton>
               </li>
             ))}
@@ -440,7 +467,7 @@ export default function Sidebar({
                         : "text-ink-faint opacity-0 group-hover:opacity-100 hover:text-[#c79a4e]"
                     }`}
                   >
-                    {fav ? "★" : "☆"}
+                    <StarIcon filled={fav} size={11} />
                   </button>
                 </span>
               );

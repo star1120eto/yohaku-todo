@@ -5,6 +5,7 @@ import { parseTitle } from "@/lib/parse";
 import { DEFAULT_PREFIXES, PRIORITY_LABELS, type ParsePrefixes } from "@/lib/types";
 import { formatDue, formatDuration, formatRepeat } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
+import { ArrowForwardIcon, FolderIcon, ScheduleIcon } from "./icons";
 
 export default function Composer({
   prefixes,
@@ -54,8 +55,13 @@ export default function Composer({
           parsed.folderName ||
           parsed.repeat ||
           parsed.durationMinutes) && (
-          <div className="flex flex-wrap items-center gap-2 px-2 pt-2.5 text-xs text-ink-soft animate-fade-up">
-            <span className="text-ink-faint">→</span>
+          <div
+            className="flex flex-wrap items-center gap-2 px-2 pt-2.5 text-xs text-ink-soft animate-fade-up"
+            data-testid="composer-preview"
+          >
+            <span className="text-ink-faint">
+              <ArrowForwardIcon size={12} />
+            </span>
             <span className="text-ink">{parsed.title || "(タイトルなし)"}</span>
             {parsed.dueAt && (
               <span className="rounded-full bg-field border border-line px-2 py-0.5">
@@ -82,13 +88,13 @@ export default function Composer({
               <Tag key={t} name={t} />
             ))}
             {parsed.folderName && (
-              <span className="rounded-full bg-field border border-line px-2 py-0.5">
-                📁 {parsed.folderName}
+              <span className="inline-flex items-center gap-1 rounded-full bg-field border border-line px-2 py-0.5">
+                <FolderIcon size={12} /> {parsed.folderName}
               </span>
             )}
             {parsed.durationMinutes && (
-              <span className="rounded-full bg-field border border-line px-2 py-0.5">
-                ⏱ {formatDuration(parsed.durationMinutes)}
+              <span className="inline-flex items-center gap-1 rounded-full bg-field border border-line px-2 py-0.5">
+                <ScheduleIcon size={12} /> {formatDuration(parsed.durationMinutes)}
               </span>
             )}
           </div>

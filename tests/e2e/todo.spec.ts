@@ -42,8 +42,8 @@ test("タイトルの自動解析プレビューが表示され、解析結果�
   const input = page.getByPlaceholder(/タスクを追加/);
   await input.fill("資料提出 明日 #仕事 !高");
 
-  // 入力中にプレビュー(→)が出る
-  const preview = page.locator("form").filter({ hasText: "→" });
+  // 入力中に解析プレビューが出る
+  const preview = page.getByTestId("composer-preview");
   await expect(preview.getByText("資料提出")).toBeVisible();
   await expect(preview.getByText("仕事")).toBeVisible();
   await expect(preview.getByText("高")).toBeVisible();
