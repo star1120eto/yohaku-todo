@@ -6,6 +6,13 @@ import { WEEKDAY_JP, formatRelative, formatRepeat } from "@/lib/format";
 import { api } from "@/hooks/useData";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
 import Calendar from "./Calendar";
+import {
+  ArrowUpwardIcon,
+  AttachFileIcon,
+  EditIcon,
+  LocationIcon,
+  OpenInNewIcon,
+} from "./icons";
 
 interface GeoResult {
   label: string;
@@ -329,9 +336,9 @@ export default function TaskDetail({
         <button
           type="button"
           onClick={() => onOpenTask(parentTask)}
-          className="inline-block mb-4 text-xs text-accent hover:underline"
+          className="inline-flex items-center gap-1 mb-4 text-xs text-accent hover:underline"
         >
-          ↑ 親: {parentTask.title}
+          <ArrowUpwardIcon size={12} /> 親: {parentTask.title}
         </button>
       )}
 
@@ -620,17 +627,23 @@ export default function TaskDetail({
               type="button"
               onClick={useCurrentLocation}
               disabled={geoBusy}
-              className="text-accent hover:underline disabled:opacity-50"
+              className="inline-flex items-center gap-1 text-accent hover:underline disabled:opacity-50"
             >
-              {geoBusy ? "取得中…" : "📍 現在地を使う"}
+              {geoBusy ? (
+                "取得中…"
+              ) : (
+                <>
+                  <LocationIcon size={13} /> 現在地を使う
+                </>
+              )}
             </button>
             {!location && (
               <button
                 type="button"
                 onClick={() => setCoords(35.681236, 139.767125)}
-                className="text-accent hover:underline"
+                className="inline-flex items-center gap-1 text-accent hover:underline"
               >
-                ✎ 緯度・経度を手入力
+                <EditIcon size={13} /> 緯度・経度を手入力
               </button>
             )}
           </div>
@@ -681,9 +694,9 @@ export default function TaskDetail({
                   href={`https://www.openstreetmap.org/?mlat=${location.lat}&mlon=${location.lng}#map=16/${location.lat}/${location.lng}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-auto text-accent hover:underline"
+                  className="ml-auto inline-flex items-center gap-1 text-accent hover:underline"
                 >
-                  地図で開く ↗
+                  地図で開く <OpenInNewIcon size={12} />
                 </a>
               </div>
             </div>
@@ -798,8 +811,8 @@ export default function TaskDetail({
                           className="h-16 w-16 object-cover rounded-lg border border-line"
                         />
                       ) : (
-                        <span className="text-xs text-accent hover:underline rounded-lg border border-line px-2 py-1 inline-block">
-                          📎 {a.name}
+                        <span className="inline-flex items-center gap-1 text-xs text-accent hover:underline rounded-lg border border-line px-2 py-1">
+                          <AttachFileIcon size={12} /> {a.name}
                         </span>
                       )}
                     </a>
@@ -845,8 +858,8 @@ export default function TaskDetail({
             </div>
           )}
           <div className="flex items-center justify-between mt-2">
-            <label className="text-ink-faint hover:text-ink cursor-pointer text-sm">
-              📎
+            <label className="inline-flex text-ink-faint hover:text-ink cursor-pointer text-sm">
+              <AttachFileIcon size={16} />
               <input
                 type="file"
                 multiple
