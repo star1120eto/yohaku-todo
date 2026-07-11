@@ -30,3 +30,6 @@ next-env.d.ts
 # capacitor native projects (generated)
 /ios/
 /android/
+
+# Claude Code personal settings (launch.json は共有するため無視しない)
+.claude/settings.local.json
