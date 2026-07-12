@@ -33,6 +33,7 @@ import StatsDialog from "./StatsDialog";
 import Notifier from "./Notifier";
 import { applyTheme } from "@/lib/theme";
 import { Field, Modal, PrimaryButton, inputClass } from "./ui";
+import { CalendarMonthIcon, ViewKanbanIcon, ViewListIcon } from "./icons";
 
 const WS_KEY = "yohaku:workspace";
 const SIDEBAR_KEY = "yohaku:sidebar";
@@ -649,9 +650,17 @@ export default function App() {
               {!searchOpen && !calendarMode && filter.type === "folder" && sections.length > 0 && (
                 <button
                   onClick={toggleBoardView}
-                  className="text-xs text-ink-faint hover:text-ink transition-colors"
+                  className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink transition-colors"
                 >
-                  {boardMode ? "☰ リスト" : "▦ ボード"}
+                  {boardMode ? (
+                    <>
+                      <ViewListIcon size={13} /> リスト
+                    </>
+                  ) : (
+                    <>
+                      <ViewKanbanIcon size={13} /> ボード
+                    </>
+                  )}
                 </button>
               )}
               {!searchOpen && !calendarMode && canEditWs && filter.type === "folder" && (
@@ -665,9 +674,17 @@ export default function App() {
               {!searchOpen && (
                 <button
                   onClick={() => setCalendarMode((v) => !v)}
-                  className="text-xs text-ink-faint hover:text-ink transition-colors"
+                  className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink transition-colors"
                 >
-                  {calendarMode ? "☰ リスト" : "🗓 カレンダー"}
+                  {calendarMode ? (
+                    <>
+                      <ViewListIcon size={13} /> リスト
+                    </>
+                  ) : (
+                    <>
+                      <CalendarMonthIcon size={13} /> カレンダー
+                    </>
+                  )}
                 </button>
               )}
               {!searchOpen && (

@@ -10,6 +10,7 @@ import {
   isOverdue,
 } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
+import { ChatBubbleIcon, FlagIcon, LocationIcon, RepeatIcon, ScheduleIcon } from "./icons";
 
 export default function TaskItem({
   task,
@@ -95,19 +96,33 @@ export default function TaskItem({
               </span>
             )}
             {task.deadlineAt && !task.completed && (
-              <span className={deadlineColor(task.deadlineAt)}>
-                🚩 {formatDeadline(task.deadlineAt)}
+              <span className={`inline-flex items-center gap-0.5 ${deadlineColor(task.deadlineAt)}`}>
+                <FlagIcon size={11} /> {formatDeadline(task.deadlineAt)}
               </span>
             )}
-            {task.durationMinutes && <span>⏱ {formatDuration(task.durationMinutes)}</span>}
-            {task.repeat && <span>↻ {formatRepeat(task)}</span>}
+            {task.durationMinutes && (
+              <span className="inline-flex items-center gap-0.5">
+                <ScheduleIcon size={11} /> {formatDuration(task.durationMinutes)}
+              </span>
+            )}
+            {task.repeat && (
+              <span className="inline-flex items-center gap-0.5">
+                <RepeatIcon size={11} /> {formatRepeat(task)}
+              </span>
+            )}
             {task.location && (
-              <span>📍 {task.location.label || "指定場所"}</span>
+              <span className="inline-flex items-center gap-0.5">
+                <LocationIcon size={11} /> {task.location.label || "指定場所"}
+              </span>
             )}
             {task.tags.map((t) => (
               <Tag key={t} name={t} />
             ))}
-            {commentCount > 0 && <span>💬 {commentCount}</span>}
+            {commentCount > 0 && (
+              <span className="inline-flex items-center gap-0.5">
+                <ChatBubbleIcon size={11} /> {commentCount}
+              </span>
+            )}
           </div>
         )}
       </button>
