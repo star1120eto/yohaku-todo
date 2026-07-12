@@ -37,3 +37,6 @@ next-env.d.ts
 # `npm run cf:typegen` で生成される。Next.js の DOM 型と衝突する ambient な
 # Request/Response 等を含むため、あえてコミットせずローカルでのみ利用する。
 /worker-configuration.d.ts
+
+# Claude Code personal settings (launch.json は共有するため無視しない)
+.claude/settings.local.json
