@@ -79,6 +79,48 @@ test("タスク詳細から削除すると一覧から消える", async ({ page 
   await expect(page.getByText("まだタスクがありません。")).toBeVisible();
 });
 
+test("絵文字から置き換えたアイコンが各所に表示される", async ({ page }) => {
+  await register(page);
+
+  // Composer: プレビューに矢印・所要時間アイコンが表示される
+  const input = page.getByPlaceholder(/タスクを追加/);
+  await input.fill("運動 2時間");
+  const preview = page.getByTestId("composer-preview");
+  await expect(preview.locator("svg").first()).toBeVisible();
+  await input.press("Enter");
+
+  // タスク一覧: 所要時間バッジにアイコンが表示される
+  const item = page.locator("li").filter({ hasText: "運動" });
+  await expect(item.locator("svg")).toBeVisible();
+  await expect(item.getByText("2時間")).toBeVisible();
+
+  // タスク詳細: 添付ボタンがアイコンのみでもアクセシブルネームを持つ
+  await item.getByText("運動").click();
+  await expect(page.getByLabel("ファイルを添付")).toBeVisible();
+  await page.getByRole("button", { name: "キャンセル" }).click();
+
+  // 表示切替ボタン: カレンダー⇄リストの切替でアイコン付きラベルに変わる
+  const toggleBtn = page.getByRole("button", { name: "カレンダー" });
+  await expect(toggleBtn.locator("svg")).toBeVisible();
+  await toggleBtn.click();
+  await expect(page.getByRole("button", { name: "リスト" })).toBeVisible();
+  await page.getByRole("button", { name: "リスト" }).click();
+
+  // サイドバー: フォルダ作成時にアイコン付きの行が表示され、長い名前でも省略記号が付く
+  await page.getByTitle("フォルダを追加").click();
+  const longName = "とても長いフォルダ名のテストケースを確認するためのラベル";
+  await page.getByPlaceholder("フォルダ名").fill(longName);
+  await page.getByPlaceholder("フォルダ名").press("Enter");
+  const folderRow = page.getByRole("button", { name: longName });
+  await expect(folderRow.locator("svg")).toBeVisible();
+  // 長い名前を持つテキスト部分が、実際に幅より広い(=省略記号で丸められる)ことを確認する
+  const nameLabel = folderRow.locator("span.truncate");
+  const overflow = await nameLabel.evaluate(
+    (el) => el.scrollWidth > el.clientWidth
+  );
+  expect(overflow).toBe(true);
+});
+
 test("ワークスペースを作成して切り替えられる", async ({ page }) => {
   await register(page);
 

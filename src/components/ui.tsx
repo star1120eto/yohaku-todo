@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { CloseIcon, ICON_SIZE } from "./icons";
 
 export function Modal({
   title,
@@ -34,9 +35,7 @@ export function Modal({
             className="-mr-2 p-2 text-ink-faint hover:text-ink transition-colors"
             aria-label="閉じる"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+            <CloseIcon size={ICON_SIZE.xl} />
           </button>
         </div>
         <div className="px-6 pb-6 pt-2">{children}</div>
