@@ -5,7 +5,7 @@ import { parseTitle } from "@/lib/parse";
 import { DEFAULT_PREFIXES, PRIORITY_LABELS, type ParsePrefixes } from "@/lib/types";
 import { formatDue, formatDuration, formatRepeat } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
-import { ArrowForwardIcon, FolderIcon, ScheduleIcon } from "./icons";
+import { AddIcon, ArrowForwardIcon, FolderIcon, ICON_SIZE, IconText, ScheduleIcon } from "./icons";
 
 export default function Composer({
   prefixes,
@@ -38,9 +38,7 @@ export default function Composer({
   return (
     <form onSubmit={submit} className="mb-8">
       <div className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 shadow-soft focus-within:border-accent/50 transition-colors">
-        <svg width="16" height="16" viewBox="0 0 16 16" className="text-ink-faint shrink-0" fill="none">
-          <path d="M8 3v10M3 8h10" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-        </svg>
+        <AddIcon size={ICON_SIZE.xl} className="text-ink-faint shrink-0" />
         <input
           className="flex-1 bg-transparent text-sm placeholder:text-ink-faint"
           placeholder={`タスクを追加（例: 企画書を出す 明日 15:00 ${p.tag}仕事 ${p.priority}高 ${p.folder}案件A）`}
@@ -60,7 +58,7 @@ export default function Composer({
             data-testid="composer-preview"
           >
             <span className="text-ink-faint">
-              <ArrowForwardIcon size={12} />
+              <ArrowForwardIcon size={ICON_SIZE.md} />
             </span>
             <span className="text-ink">{parsed.title || "(タイトルなし)"}</span>
             {parsed.dueAt && (
@@ -88,14 +86,22 @@ export default function Composer({
               <Tag key={t} name={t} />
             ))}
             {parsed.folderName && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-field border border-line px-2 py-0.5">
-                <FolderIcon size={12} /> {parsed.folderName}
-              </span>
+              <IconText
+                icon={FolderIcon}
+                size={ICON_SIZE.md}
+                className="rounded-full bg-field border border-line px-2 py-0.5"
+              >
+                {parsed.folderName}
+              </IconText>
             )}
             {parsed.durationMinutes && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-field border border-line px-2 py-0.5">
-                <ScheduleIcon size={12} /> {formatDuration(parsed.durationMinutes)}
-              </span>
+              <IconText
+                icon={ScheduleIcon}
+                size={ICON_SIZE.md}
+                className="rounded-full bg-field border border-line px-2 py-0.5"
+              >
+                {formatDuration(parsed.durationMinutes)}
+              </IconText>
             )}
           </div>
         )}
