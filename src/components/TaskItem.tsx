@@ -10,7 +10,15 @@ import {
   isOverdue,
 } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
-import { ChatBubbleIcon, FlagIcon, LocationIcon, RepeatIcon, ScheduleIcon } from "./icons";
+import {
+  ChatBubbleIcon,
+  FlagIcon,
+  ICON_SIZE,
+  IconText,
+  LocationIcon,
+  RepeatIcon,
+  ScheduleIcon,
+} from "./icons";
 
 export default function TaskItem({
   task,
@@ -96,31 +104,32 @@ export default function TaskItem({
               </span>
             )}
             {task.deadlineAt && !task.completed && (
-              <span className={`inline-flex items-center gap-0.5 ${deadlineColor(task.deadlineAt)}`}>
-                <FlagIcon size={11} /> {formatDeadline(task.deadlineAt)}
-              </span>
+              <IconText icon={FlagIcon} size={ICON_SIZE.sm} gap="gap-0.5" className={deadlineColor(task.deadlineAt)}>
+                {formatDeadline(task.deadlineAt)}
+              </IconText>
             )}
             {task.durationMinutes && (
-              <span className="inline-flex items-center gap-0.5">
-                <ScheduleIcon size={11} /> {formatDuration(task.durationMinutes)}
-              </span>
+              <IconText icon={ScheduleIcon} size={ICON_SIZE.sm} gap="gap-0.5">
+                {formatDuration(task.durationMinutes)}
+              </IconText>
             )}
             {task.repeat && (
-              <span className="inline-flex items-center gap-0.5">
-                <RepeatIcon size={11} /> {formatRepeat(task)}
-              </span>
+              <IconText icon={RepeatIcon} size={ICON_SIZE.sm} gap="gap-0.5">
+                {formatRepeat(task)}
+              </IconText>
             )}
             {task.location && (
-              <span className="inline-flex items-center gap-0.5">
-                <LocationIcon size={11} /> {task.location.label || "指定場所"}
-              </span>
+              <IconText icon={LocationIcon} size={ICON_SIZE.sm} gap="gap-0.5">
+                {task.location.label || "指定場所"}
+              </IconText>
             )}
             {task.tags.map((t) => (
               <Tag key={t} name={t} />
             ))}
             {commentCount > 0 && (
-              <span className="inline-flex items-center gap-0.5">
-                <ChatBubbleIcon size={11} /> {commentCount}
+              <span className="inline-flex items-center gap-0.5" aria-label={`コメント${commentCount}件`}>
+                <ChatBubbleIcon size={ICON_SIZE.sm} className="shrink-0" />
+                <span aria-hidden="true">{commentCount}</span>
               </span>
             )}
           </div>

@@ -33,10 +33,36 @@ import StatsDialog from "./StatsDialog";
 import Notifier from "./Notifier";
 import { applyTheme } from "@/lib/theme";
 import { Field, Modal, PrimaryButton, inputClass } from "./ui";
-import { CalendarMonthIcon, ViewKanbanIcon, ViewListIcon } from "./icons";
+import {
+  CalendarMonthIcon,
+  ChevronLeftIcon,
+  CloseIcon,
+  ICON_SIZE,
+  MenuIcon,
+  SearchIcon,
+  ViewKanbanIcon,
+  ViewListIcon,
+} from "./icons";
 
 const WS_KEY = "yohaku:workspace";
 const SIDEBAR_KEY = "yohaku:sidebar";
+
+// ヘッダーの表示切替ボタン(リスト⇄ボード、リスト⇄カレンダー)のラベル。
+// アイコン+テキストの組を1箇所にまとめ、サイズ・マークアップの重複を避ける。
+function ToggleLabel({
+  icon: IconComp,
+  label,
+}: {
+  icon: (props: { size?: number; className?: string }) => React.ReactElement;
+  label: string;
+}) {
+  const Icon = IconComp;
+  return (
+    <>
+      <Icon size={ICON_SIZE.md} /> {label}
+    </>
+  );
+}
 
 function startOfToday() {
   const d = new Date();
@@ -549,9 +575,7 @@ export default function App() {
           aria-label="メニューを開く"
           className="fixed top-3 left-3 z-40 p-2 rounded-lg bg-card/90 border border-line shadow-soft text-ink-soft hover:text-ink backdrop-blur"
         >
-          <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-            <path d="M3 5h12M3 9h12M3 13h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          <MenuIcon size={ICON_SIZE.xl} />
         </button>
       )}
 
@@ -566,9 +590,7 @@ export default function App() {
           aria-label="メニューを閉じる"
           className="absolute top-4 right-3 p-1 text-ink-faint hover:text-ink"
         >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M10 3L5 8l5 5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <ChevronLeftIcon size={ICON_SIZE.xl} />
         </button>
         <Sidebar
           workspaces={workspaces}
@@ -653,13 +675,9 @@ export default function App() {
                   className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink transition-colors"
                 >
                   {boardMode ? (
-                    <>
-                      <ViewListIcon size={13} /> リスト
-                    </>
+                    <ToggleLabel icon={ViewListIcon} label="リスト" />
                   ) : (
-                    <>
-                      <ViewKanbanIcon size={13} /> ボード
-                    </>
+                    <ToggleLabel icon={ViewKanbanIcon} label="ボード" />
                   )}
                 </button>
               )}
@@ -677,13 +695,9 @@ export default function App() {
                   className="inline-flex items-center gap-1 text-xs text-ink-faint hover:text-ink transition-colors"
                 >
                   {calendarMode ? (
-                    <>
-                      <ViewListIcon size={13} /> リスト
-                    </>
+                    <ToggleLabel icon={ViewListIcon} label="リスト" />
                   ) : (
-                    <>
-                      <CalendarMonthIcon size={13} /> カレンダー
-                    </>
+                    <ToggleLabel icon={CalendarMonthIcon} label="カレンダー" />
                   )}
                 </button>
               )}
@@ -693,10 +707,7 @@ export default function App() {
                   aria-label="検索"
                   className="p-1.5 text-ink-faint hover:text-ink transition-colors"
                 >
-                  <svg width="17" height="17" viewBox="0 0 17 17" fill="none">
-                    <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M11 11l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
+                  <SearchIcon size={ICON_SIZE.lg} />
                 </button>
               )}
             </div>
@@ -730,10 +741,7 @@ export default function App() {
             {searchOpen && (
               <div className="mb-6 animate-fade-up">
                 <div className="flex items-center gap-2 rounded-xl border border-line bg-card px-4 py-2.5 shadow-soft focus-within:border-accent/50">
-                  <svg width="15" height="15" viewBox="0 0 17 17" fill="none" className="text-ink-faint shrink-0">
-                    <circle cx="7" cy="7" r="5" stroke="currentColor" strokeWidth="1.5" />
-                    <path d="M11 11l4 4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                  </svg>
+                  <SearchIcon size={ICON_SIZE.md} className="text-ink-faint shrink-0" />
                   <input
                     ref={searchInputRef}
                     className="flex-1 bg-transparent text-sm placeholder:text-ink-faint"
@@ -746,9 +754,7 @@ export default function App() {
                     aria-label="検索を閉じる"
                     className="text-ink-faint hover:text-ink shrink-0"
                   >
-                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-                      <path d="M3 3l10 10M13 3L3 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                    </svg>
+                    <CloseIcon size={ICON_SIZE.md} />
                   </button>
                 </div>
                 <label className="flex items-center gap-1.5 mt-2 px-1 text-xs text-ink-soft cursor-pointer">

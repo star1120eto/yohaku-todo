@@ -7,6 +7,8 @@ import {
   DescriptionIcon,
   EditIcon,
   FolderIcon,
+  ICON_SIZE,
+  IconText,
   LockIcon,
   SearchIcon,
   StarIcon,
@@ -38,7 +40,7 @@ function StarButton({
           : "text-ink-faint opacity-0 group-hover:opacity-100 hover:text-[#c79a4e]"
       }`}
     >
-      <StarIcon filled={active} size={13} />
+      <StarIcon filled={active} size={ICON_SIZE.lg} />
     </button>
   );
 }
@@ -156,16 +158,20 @@ export default function Sidebar({
                 return (
                   <li key={`${f.type}:${f.ref}`}>
                     <NavButton active={active} onClick={() => onSelectFavorite(f)}>
-                      <span className="inline-flex items-center gap-1.5">
-                        {f.type === "folder" ? (
-                          <FolderIcon size={13} />
-                        ) : f.type === "filter" ? (
-                          <SearchIcon size={13} />
-                        ) : (
-                          "#"
-                        )}
-                        {f.label}
-                      </span>
+                      {f.type === "folder" ? (
+                        <IconText icon={FolderIcon} size={ICON_SIZE.lg} truncate>
+                          {f.label}
+                        </IconText>
+                      ) : f.type === "filter" ? (
+                        <IconText icon={SearchIcon} size={ICON_SIZE.lg} truncate>
+                          {f.label}
+                        </IconText>
+                      ) : (
+                        <span className="flex items-center gap-1 min-w-0">
+                          <span className="shrink-0">#</span>
+                          <span className="truncate min-w-0">{f.label}</span>
+                        </span>
+                      )}
                     </NavButton>
                   </li>
                 );
@@ -206,8 +212,12 @@ export default function Sidebar({
               >
                 {w.name}
                 {w.private && (
-                  <span className="ml-1.5 inline-flex text-ink-faint align-middle">
-                    <LockIcon size={10} />
+                  <span
+                    className="ml-1.5 inline-flex text-ink-faint align-middle"
+                    role="img"
+                    aria-label="非公開"
+                  >
+                    <LockIcon size={ICON_SIZE.sm} />
                   </span>
                 )}
                 {!w.private && w.members.length > 1 && (
@@ -269,7 +279,7 @@ export default function Sidebar({
                       className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
                       title="テンプレートとして保存"
                     >
-                      <DescriptionIcon size={13} />
+                      <DescriptionIcon size={ICON_SIZE.lg} />
                     </button>
                     <button
                       onClick={() => {
@@ -285,10 +295,9 @@ export default function Sidebar({
                   </span>
                 }
               >
-                <span className="inline-flex items-center gap-1.5">
-                  <FolderIcon size={13} />
+                <IconText icon={FolderIcon} size={ICON_SIZE.lg} truncate>
                   {f.name}
-                </span>
+                </IconText>
               </NavButton>
             </li>
           ))}
@@ -338,7 +347,7 @@ export default function Sidebar({
                       className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
                       title="編集"
                     >
-                      <EditIcon size={13} />
+                      <EditIcon size={ICON_SIZE.lg} />
                     </button>
                     <button
                       onClick={() => {
@@ -354,10 +363,9 @@ export default function Sidebar({
                   </span>
                 }
               >
-                <span className="inline-flex items-center gap-1.5">
-                  <SearchIcon size={13} />
+                <IconText icon={SearchIcon} size={ICON_SIZE.lg} truncate>
                   {f.name}
-                </span>
+                </IconText>
               </NavButton>
             </li>
           ))}
@@ -380,7 +388,7 @@ export default function Sidebar({
                         className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
                         title="名前を変更"
                       >
-                        <EditIcon size={13} />
+                        <EditIcon size={ICON_SIZE.lg} />
                       </button>
                       <button
                         onClick={() => {
@@ -396,10 +404,9 @@ export default function Sidebar({
                     </span>
                   }
                 >
-                  <span className="inline-flex items-center gap-1.5">
-                    <DescriptionIcon size={13} />
+                  <IconText icon={DescriptionIcon} size={ICON_SIZE.lg} truncate>
                     {t.name}
-                  </span>
+                  </IconText>
                 </NavButton>
               </li>
             ))}
@@ -435,7 +442,7 @@ export default function Sidebar({
                         : "text-ink-faint opacity-0 group-hover:opacity-100 hover:text-[#c79a4e]"
                     }`}
                   >
-                    <StarIcon filled={fav} size={11} />
+                    <StarIcon filled={fav} size={ICON_SIZE.sm} />
                   </button>
                 </span>
               );

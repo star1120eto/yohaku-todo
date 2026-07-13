@@ -7,6 +7,15 @@ interface IconProps {
   className?: string;
 }
 
+// アイコンサイズの基準(隣接するテキストの font-size にほぼ合わせる)。
+// サイズをファイルごとに決め打ちせず、ここに集約する。
+export const ICON_SIZE = {
+  sm: 11, // text-[10px]〜text-[11px] の一覧メタ情報バッジ
+  md: 12, // text-xs のチップ・インラインボタン
+  lg: 13, // text-sm の行・ボタン
+  xl: 16, // 単体でタップ領域が必要なアイコンボタン
+} as const;
+
 function Icon({
   path,
   size = 16,
@@ -23,6 +32,40 @@ function Icon({
     >
       <path d={path} />
     </svg>
+  );
+}
+
+type IconComponent = (props: IconProps) => React.ReactElement;
+
+// 「アイコン + テキスト」を1行で並べる、一覧バッジ/チップ用の共有コンポーネント。
+// gap やサイズが呼び出し側ごとにバラつかないよう、ここで既定値を固定する。
+//
+// truncate=true のとき、親要素(祖先の `truncate` 付きボタンなど)の省略記号(…)を
+// 壊さないよう、テキスト部分を独自の `truncate` 付き block/flex 要素として切り出す。
+// (アイコン+テキストを単純に inline-flex で束ねると、祖先の text-overflow:ellipsis が
+// そのアトミックなボックスごとクリップしてしまい、「…」が出ないまま欠けて見える)
+export function IconText({
+  icon: IconComp,
+  size = ICON_SIZE.sm,
+  gap = "gap-1",
+  className = "",
+  truncate = false,
+  children,
+}: {
+  icon: IconComponent;
+  size?: number;
+  gap?: string;
+  className?: string;
+  truncate?: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <span
+      className={`${truncate ? "flex min-w-0" : "inline-flex"} items-center ${gap} ${className}`}
+    >
+      <IconComp size={size} className="shrink-0" />
+      {truncate ? <span className="truncate min-w-0">{children}</span> : children}
+    </span>
   );
 }
 
@@ -80,21 +123,16 @@ export function FolderIcon(props: IconProps) {
   );
 }
 
+const STAR_PATH_FILLED =
+  "m233-120 65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Z";
+const STAR_PATH_OUTLINE =
+  "m323-245 157-94 157 95-42-178 138-120-182-16-71-168-71 167-182 16 138 120-42 178Zm-90 125 65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Zm247-355Z";
+
 export function StarIcon({
   filled,
   ...props
 }: IconProps & { filled: boolean }) {
-  return filled ? (
-    <Icon
-      {...props}
-      path="m233-120 65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Z"
-    />
-  ) : (
-    <Icon
-      {...props}
-      path="m323-245 157-94 157 95-42-178 138-120-182-16-71-168-71 167-182 16 138 120-42 178Zm-90 125 65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Zm247-355Z"
-    />
-  );
+  return <Icon {...props} path={filled ? STAR_PATH_FILLED : STAR_PATH_OUTLINE} />;
 }
 
 export function SearchIcon(props: IconProps) {
@@ -201,6 +239,42 @@ export function CheckIcon(props: IconProps) {
     <Icon
       {...props}
       path="M378-246 154-470l43-43 181 181 384-384 43 43-427 427Z"
+    />
+  );
+}
+
+export function MenuIcon(props: IconProps) {
+  return (
+    <Icon
+      {...props}
+      path="M120-240v-60h720v60H120Zm0-210v-60h720v60H120Zm0-210v-60h720v60H120Z"
+    />
+  );
+}
+
+export function CloseIcon(props: IconProps) {
+  return (
+    <Icon
+      {...props}
+      path="m249-207-42-42 231-231-231-231 42-42 231 231 231-231 42 42-231 231 231 231-42 42-231-231-231 231Z"
+    />
+  );
+}
+
+export function ChevronLeftIcon(props: IconProps) {
+  return (
+    <Icon
+      {...props}
+      path="M561-240 320-481l241-241 43 43-198 198 198 198-43 43Z"
+    />
+  );
+}
+
+export function AddIcon(props: IconProps) {
+  return (
+    <Icon
+      {...props}
+      path="M450-450H200v-60h250v-250h60v250h250v60H510v250h-60v-250Z"
     />
   );
 }

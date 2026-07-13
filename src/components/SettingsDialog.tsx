@@ -6,7 +6,7 @@ import { WEBHOOK_EVENTS } from "@/lib/types";
 import { api } from "@/hooks/useData";
 import { applyTheme } from "@/lib/theme";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
-import { CheckIcon } from "./icons";
+import { CheckIcon, ICON_SIZE } from "./icons";
 
 interface GcalStatus {
   configured: boolean;
@@ -262,7 +262,7 @@ export default function SettingsDialog({
       <div className="mb-4">
         {notifState === "granted" ? (
           <p className="inline-flex items-center gap-1 text-sm text-accent">
-            ブラウザ通知は許可されています <CheckIcon size={13} />
+            ブラウザ通知は許可されています <CheckIcon size={ICON_SIZE.lg} />
           </p>
         ) : notifState === "unsupported" ? (
           <p className="text-sm text-ink-faint">このブラウザは通知に対応していません</p>
@@ -314,7 +314,7 @@ export default function SettingsDialog({
           {gcal.connected ? (
             <>
               <p className="inline-flex items-center gap-1 text-sm text-accent mb-2">
-                {gcal.email || "接続中"} と連携しています <CheckIcon size={13} />
+                {gcal.email || "接続中"} と連携しています <CheckIcon size={ICON_SIZE.lg} />
               </p>
               <p className="text-[11px] text-ink-faint mb-2 leading-5">
                 期日のあるタスクの作成・変更・完了・削除が、このカレンダーへ反映されます。
