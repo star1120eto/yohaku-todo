@@ -68,7 +68,7 @@ test.describe("所要時間", () => {
     await expect(dialog).toBeHidden();
 
     const item = page.locator("li", { hasText: "レポート執筆" });
-    await expect(item.getByText("⏱ 1時間30分")).toBeVisible();
+    await expect(item.getByText("1時間30分")).toBeVisible();
   });
 });
 
@@ -93,7 +93,7 @@ test.describe("締切と複数リマインダー", () => {
     await expect(dialog).toBeHidden();
 
     const item = page.locator("li", { hasText: "確定申告" });
-    await expect(item.getByText("🚩")).toBeVisible();
+    await expect(item.getByText(/\/20$/)).toBeVisible();
 
     // 再度開くと選択したリマインダーが保持されている
     await openTask(page, "確定申告");

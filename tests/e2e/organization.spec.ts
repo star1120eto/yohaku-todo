@@ -30,7 +30,7 @@ test.describe("カスタムフィルター", () => {
     await dialog.getByRole("button", { name: "保存" }).click();
     await expect(dialog).toBeHidden();
 
-    const filterNav = page.getByRole("button", { name: "🔎 高優先度のみ" });
+    const filterNav = page.getByRole("button", { name: "高優先度のみ" });
     await expect(filterNav).toBeVisible();
     await filterNav.click();
 
@@ -47,7 +47,7 @@ test.describe("カスタムフィルター", () => {
     // 削除
     page.once("dialog", (d) => d.accept());
     await page.getByTitle("削除").click();
-    await expect(page.getByRole("button", { name: "🔎 高優先度のみ" })).toBeHidden();
+    await expect(page.getByRole("button", { name: "高優先度のみ" })).toBeHidden();
   });
 });
 
@@ -63,7 +63,7 @@ test.describe("お気に入り", () => {
 
     await folderRow.getByTitle("お気に入りに登録").click();
     const favorites = page.getByTestId("favorites");
-    const favNav = favorites.getByRole("button", { name: `📁 ${folderName}` });
+    const favNav = favorites.getByRole("button", { name: folderName });
     await expect(favNav).toBeVisible();
 
     // お気に入りから選ぶとそのフォルダに切り替わる
@@ -84,7 +84,7 @@ test.describe("セクションとボード表示", () => {
     const folderName = `プロジェクト${uniqueSuffix()}`;
     await page.getByTitle("フォルダを追加").click();
     await fillAndSubmit(page.getByPlaceholder("フォルダ名"), folderName);
-    await page.getByRole("button", { name: `📁 ${folderName}` }).click();
+    await page.getByRole("button", { name: folderName }).click();
     await expect(page.getByRole("heading", { name: folderName })).toBeVisible();
 
     // セクションは(空のフォルダには何も表示されない仕様のため)先にタスクを1件追加してから作る
@@ -96,7 +96,7 @@ test.describe("セクションとボード表示", () => {
     await expect(page.getByRole("button", { name: sectionName })).toBeVisible();
 
     // ボード表示に切り替えるとかんばん形式のカラムになる
-    await page.getByRole("button", { name: "▦ ボード" }).click();
+    await page.getByRole("button", { name: "ボード" }).click();
     await expect(page.getByText("画面設計をする")).toBeVisible();
 
     // ボードのカラムからタスクを追加できる
@@ -105,7 +105,7 @@ test.describe("セクションとボード表示", () => {
     await expect(page.getByText("APIを実装する")).toBeVisible();
 
     // リスト表示に戻せる
-    await page.getByRole("button", { name: "☰ リスト" }).click();
+    await page.getByRole("button", { name: "リスト" }).click();
     await expect(page.getByText("APIを実装する")).toBeVisible();
   });
 });
@@ -117,7 +117,7 @@ test.describe("カレンダー表示", () => {
     await register(page);
     await addTask(page, "歯医者の予約 今日");
 
-    await page.getByRole("button", { name: "🗓 カレンダー" }).click();
+    await page.getByRole("button", { name: "カレンダー" }).click();
 
     const today = new Date();
     await page
@@ -128,7 +128,7 @@ test.describe("カレンダー表示", () => {
       page.getByRole("button", { name: "歯医者の予約", exact: true })
     ).toBeVisible();
 
-    await page.getByRole("button", { name: "☰ リスト" }).click();
+    await page.getByRole("button", { name: "リスト" }).click();
     await expect(page.getByPlaceholder(/タスクを追加/)).toBeVisible();
   });
 });
