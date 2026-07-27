@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { updateDb, newId, newInviteCode } from "@/lib/db";
 import { UID_COOKIE, publicUser } from "@/lib/auth";
 import { hashPassword, isValidEmail } from "@/lib/password";
+import { isEmailAllowed } from "@/lib/allowlist";
 import { defaultSettings, type User } from "@/lib/types";
 
 // メールアドレス + パスワードでアカウントを登録する。
@@ -17,6 +18,12 @@ export async function POST(req: Request) {
   }
   if (password.length < 6) {
     return Response.json({ error: "パスワードは6文字以上にしてください" }, { status: 400 });
+  }
+  if (!isEmailAllowed(email)) {
+    return Response.json(
+      { error: "現在は招待されたメールアドレスのみ登録できます" },
+      { status: 403 }
+    );
   }
 
   const now = new Date().toISOString();

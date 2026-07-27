@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { readDb } from "@/lib/db";
 import { UID_COOKIE, publicUser } from "@/lib/auth";
 import { verifyPassword } from "@/lib/password";
+import { isEmailAllowed } from "@/lib/allowlist";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => ({}));
@@ -14,6 +15,12 @@ export async function POST(req: Request) {
     return Response.json(
       { error: "メールアドレスまたはパスワードが正しくありません" },
       { status: 401 }
+    );
+  }
+  if (!isEmailAllowed(email)) {
+    return Response.json(
+      { error: "現在は招待されたメールアドレスのみ利用できます" },
+      { status: 403 }
     );
   }
 
