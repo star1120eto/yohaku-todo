@@ -35,7 +35,7 @@ test.describe("CSVインポート・エクスポート", () => {
       buffer: Buffer.from(SAMPLE_CSV),
     });
 
-    const folderNav = page.getByRole("button", { name: `📁 ${folderName}` });
+    const folderNav = page.getByRole("button", { name: folderName });
     await expect(folderNav).toBeVisible();
     await folderNav.click();
     await expect(page.getByRole("heading", { name: folderName })).toBeVisible();
@@ -45,9 +45,9 @@ test.describe("CSVインポート・エクスポート", () => {
     await expect(page.getByText("Another Link")).toBeVisible();
 
     // ボード表示に切り替えると、CSVのsection行がセクション(カラム)として反映されている
-    await page.getByRole("button", { name: "▦ ボード" }).click();
+    await page.getByRole("button", { name: "ボード" }).click();
     await expect(page.getByText("ブックマーク")).toBeVisible();
-    await page.getByRole("button", { name: "☰ リスト" }).click();
+    await page.getByRole("button", { name: "リスト" }).click();
 
     // 同じフォルダをCSVへエクスポートし直せる
     const [download] = await Promise.all([

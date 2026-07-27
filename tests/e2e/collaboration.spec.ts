@@ -99,11 +99,13 @@ test.describe("コメント・添付ファイル", () => {
       .fill("金額を確認してください");
     await dialog.getByRole("button", { name: "送信" }).click();
     await expect(dialog.getByText("金額を確認してください")).toBeVisible();
-    await expect(dialog.getByText("📎 note.txt")).toBeVisible();
+    await expect(dialog.getByText("note.txt")).toBeVisible();
     await page.keyboard.press("Escape");
 
     // 一覧のコメント数バッジに反映される
-    await expect(page.locator("li", { hasText: "見積書を確認する" }).getByText("💬 1")).toBeVisible();
+    await expect(
+      page.locator("li", { hasText: "見積書を確認する" }).getByText("1", { exact: true })
+    ).toBeVisible();
 
     // 別メンバーもコメントできるが、他人のコメントは削除できない
     await memberPage.getByText("見積書を確認する").click();

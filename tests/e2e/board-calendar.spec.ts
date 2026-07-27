@@ -7,7 +7,7 @@ test.describe("ボード表示のドラッグ&ドロップ", () => {
     const folderName = `かんばん${uniqueSuffix()}`;
     await page.getByTitle("フォルダを追加").click();
     await fillAndSubmit(page.getByPlaceholder("フォルダ名"), folderName);
-    await page.getByRole("button", { name: `📁 ${folderName}` }).click();
+    await page.getByRole("button", { name: folderName }).click();
     await expect(page.getByRole("heading", { name: folderName })).toBeVisible();
 
     await addTask(page, "設計を見直す");
@@ -16,7 +16,7 @@ test.describe("ボード表示のドラッグ&ドロップ", () => {
     await fillAndSubmit(page.getByPlaceholder("セクション名"), "進行中");
     await expect(page.getByRole("button", { name: "進行中" })).toBeVisible();
 
-    await page.getByRole("button", { name: "▦ ボード" }).click();
+    await page.getByRole("button", { name: "ボード" }).click();
 
     const noSectionColumn = page.locator(".shrink-0.w-64", { hasText: "セクションなし" });
     const inProgressColumn = page.locator(".shrink-0.w-64", { hasText: "進行中" });
@@ -36,7 +36,7 @@ test.describe("カレンダー表示のナビゲーション", () => {
     page,
   }) => {
     await register(page);
-    await page.getByRole("button", { name: "🗓 カレンダー" }).click();
+    await page.getByRole("button", { name: "カレンダー" }).click();
 
     const monthLabel = page.getByText(/^\d{4}年 \d{1,2}月$/);
     const initialMonth = await monthLabel.textContent();

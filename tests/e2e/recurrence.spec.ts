@@ -26,7 +26,7 @@ test.describe("繰り返しタスク", () => {
     await expect(dialog).toBeHidden();
 
     const item = page.locator("li", { hasText: "掃除する" });
-    await expect(item.getByText("↻ 毎日")).toBeVisible();
+    await expect(item.getByText("毎日")).toBeVisible();
     // 完了済みのサブタスクは(アクティブ/完了済みで別ツリーのため)ここでは
     // カウントされず、親の子タスクバッジはまだ表示されない
     await expect(item.getByText(/^\d+\/\d+$/)).toBeHidden();

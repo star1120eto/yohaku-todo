@@ -9,7 +9,7 @@ test.describe("テンプレート", () => {
     const folderName = `朝の準備${uniqueSuffix()}`;
     await page.getByTitle("フォルダを追加").click();
     await fillAndSubmit(page.getByPlaceholder("フォルダ名"), folderName);
-    await page.getByRole("button", { name: `📁 ${folderName}` }).click();
+    await page.getByRole("button", { name: folderName }).click();
     await expect(page.getByRole("heading", { name: folderName })).toBeVisible();
 
     await addTask(page, "歯磨き 明日 07:00 !高 #生活");
@@ -24,7 +24,7 @@ test.describe("テンプレート", () => {
     await folderRow.getByTitle("テンプレートとして保存").click();
 
     const templates = page.getByTestId("templates");
-    const templateNav = templates.getByRole("button", { name: `📄 ${templateName}` });
+    const templateNav = templates.getByRole("button", { name: templateName });
     await expect(templateNav).toBeVisible();
 
     // 適用すると、フォルダ名を指定して新しいフォルダにタスクが複製される
@@ -32,7 +32,7 @@ test.describe("テンプレート", () => {
     page.once("dialog", (d) => d.accept(newFolderName));
     await templateNav.click();
 
-    const newFolderNav = folders.getByRole("button", { name: `📁 ${newFolderName}` });
+    const newFolderNav = folders.getByRole("button", { name: newFolderName });
     await expect(newFolderNav).toBeVisible();
     await newFolderNav.click();
     await expect(page.getByRole("heading", { name: newFolderName })).toBeVisible();
@@ -45,7 +45,7 @@ test.describe("テンプレート", () => {
     const renamed = `${templateName}(改)`;
     page.once("dialog", (d) => d.accept(renamed));
     await templates.getByTitle("名前を変更").click();
-    await expect(templates.getByRole("button", { name: `📄 ${renamed}` })).toBeVisible();
+    await expect(templates.getByRole("button", { name: renamed })).toBeVisible();
 
     // 削除できる
     page.once("dialog", (d) => d.accept());
