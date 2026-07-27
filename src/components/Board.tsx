@@ -5,7 +5,7 @@ import type { Section, Task } from "@/lib/types";
 import type { TaskNode } from "@/lib/tree";
 import { formatDue, formatDuration, isOverdue } from "@/lib/format";
 import { PriorityDot, Tag } from "./ui";
-import { ScheduleIcon } from "./icons";
+import { ICON_SIZE, IconText, ScheduleIcon } from "./icons";
 
 export interface BoardGroup {
   section: Section | null;
@@ -53,9 +53,9 @@ function BoardCard({
             <span className={overdue ? "text-danger" : ""}>{formatDue(task.dueAt)}</span>
           )}
           {task.durationMinutes && (
-            <span className="inline-flex items-center gap-0.5">
-              <ScheduleIcon size={10} /> {formatDuration(task.durationMinutes)}
-            </span>
+            <IconText icon={ScheduleIcon} size={ICON_SIZE.sm} gap="gap-0.5">
+              {formatDuration(task.durationMinutes)}
+            </IconText>
           )}
           {task.tags.slice(0, 2).map((t) => (
             <Tag key={t} name={t} />

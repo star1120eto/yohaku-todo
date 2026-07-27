@@ -10,6 +10,7 @@ import {
   ArrowUpwardIcon,
   AttachFileIcon,
   EditIcon,
+  ICON_SIZE,
   LocationIcon,
   OpenInNewIcon,
 } from "./icons";
@@ -338,7 +339,7 @@ export default function TaskDetail({
           onClick={() => onOpenTask(parentTask)}
           className="inline-flex items-center gap-1 mb-4 text-xs text-accent hover:underline"
         >
-          <ArrowUpwardIcon size={12} /> 親: {parentTask.title}
+          <ArrowUpwardIcon size={ICON_SIZE.md} /> 親: {parentTask.title}
         </button>
       )}
 
@@ -633,7 +634,7 @@ export default function TaskDetail({
                 "取得中…"
               ) : (
                 <>
-                  <LocationIcon size={13} /> 現在地を使う
+                  <LocationIcon size={ICON_SIZE.md} /> 現在地を使う
                 </>
               )}
             </button>
@@ -643,7 +644,7 @@ export default function TaskDetail({
                 onClick={() => setCoords(35.681236, 139.767125)}
                 className="inline-flex items-center gap-1 text-accent hover:underline"
               >
-                <EditIcon size={13} /> 緯度・経度を手入力
+                <EditIcon size={ICON_SIZE.md} /> 緯度・経度を手入力
               </button>
             )}
           </div>
@@ -696,7 +697,7 @@ export default function TaskDetail({
                   rel="noopener noreferrer"
                   className="ml-auto inline-flex items-center gap-1 text-accent hover:underline"
                 >
-                  地図で開く <OpenInNewIcon size={12} />
+                  地図で開く <OpenInNewIcon size={ICON_SIZE.md} />
                 </a>
               </div>
             </div>
@@ -812,7 +813,7 @@ export default function TaskDetail({
                         />
                       ) : (
                         <span className="inline-flex items-center gap-1 text-xs text-accent hover:underline rounded-lg border border-line px-2 py-1">
-                          <AttachFileIcon size={12} /> {a.name}
+                          <AttachFileIcon size={ICON_SIZE.md} /> {a.name}
                         </span>
                       )}
                     </a>
@@ -858,8 +859,11 @@ export default function TaskDetail({
             </div>
           )}
           <div className="flex items-center justify-between mt-2">
-            <label className="inline-flex text-ink-faint hover:text-ink cursor-pointer text-sm">
-              <AttachFileIcon size={16} />
+            <label
+              className="inline-flex text-ink-faint hover:text-ink cursor-pointer text-sm"
+              aria-label="ファイルを添付"
+            >
+              <AttachFileIcon size={ICON_SIZE.xl} />
               <input
                 type="file"
                 multiple
