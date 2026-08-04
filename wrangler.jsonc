@@ -12,8 +12,7 @@
     {
       "binding": "DB",
       "database_name": "yohaku-todo-db",
-      // `npx wrangler d1 create yohaku-todo-db` を実行して発行された ID に置き換える
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+      "database_id": "d2757f33-8976-4a46-b969-2f4a91f4ac66"
     }
   ]
 }
