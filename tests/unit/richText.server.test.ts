@@ -23,7 +23,7 @@ describe("sanitizeRichText", () => {
     expect(clean).not.toContain("<style");
   });
 
-  it("http/https リンクは保持し、target=_blank rel=noopener noreferrer を付与する", () => {
+  it("https リンクは保持し、target=_blank rel=noopener noreferrer を付与する", () => {
     const clean = sanitizeRichText('<p><a href="https://example.com">詳細</a></p>');
     expect(clean).toContain('href="https://example.com"');
     expect(clean).toContain('target="_blank"');
@@ -41,13 +41,11 @@ describe("sanitizeRichText", () => {
     }
   });
 
-  it("mailto: / tel: リンクは許可する", () => {
-    expect(sanitizeRichText('<a href="mailto:a@example.com">mail</a>')).toContain(
-      "mailto:a@example.com"
-    );
-    expect(sanitizeRichText('<a href="tel:0312345678">tel</a>')).toContain(
-      "tel:0312345678"
-    );
+  it("http: / mailto: / tel: リンクは許可しない(https のみ許可)", () => {
+    for (const href of ["http://example.com", "mailto:a@example.com", "tel:0312345678"]) {
+      const clean = sanitizeRichText(`<p><a href="${href}">リンク</a></p>`);
+      expect(clean).not.toContain(href);
+    }
   });
 
   it("既存の保存済みプレーンテキスト(改行あり)は段落に変換されて保存される", () => {

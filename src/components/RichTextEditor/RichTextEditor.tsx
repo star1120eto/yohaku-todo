@@ -45,7 +45,7 @@ export function RichTextEditor({
           autolink: true,
           linkOnPaste: true,
           defaultProtocol: "https",
-          protocols: ["http", "https", "mailto", "tel"],
+          protocols: ["https"],
           HTMLAttributes: {
             target: "_blank",
             rel: "noopener noreferrer",

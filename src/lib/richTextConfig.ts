@@ -17,9 +17,8 @@ export const RICH_TEXT_ALLOWED_TAGS = [
 /** 保存・表示を許可する属性。 */
 export const RICH_TEXT_ALLOWED_ATTR = ["href", "target", "rel"] as const;
 
-/** リンクとして許可するプロトコル。javascript: や data: などは弾く。 */
-export const RICH_TEXT_ALLOWED_URI_REGEXP =
-  /^(?:https?|mailto|tel):/i;
+/** リンクとして許可するプロトコル。https のみ(http/mailto/tel/javascript: 等は弾く)。 */
+export const RICH_TEXT_ALLOWED_URI_REGEXP = /^https:/i;
 
 /** 文字列が(プレーンテキストではなく)HTML タグを含んでいそうかどうか。 */
 export function looksLikeHtml(raw: string): boolean {

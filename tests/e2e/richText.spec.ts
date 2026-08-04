@@ -63,6 +63,36 @@ test("コメント欄にURLを投稿すると、リンクとして表示され�
   await expect(commentLink).toHaveAttribute("target", "_blank");
 });
 
+test("http: や mailto: のURLはリンク化されない(httpsのみ許可)", async ({
+  page,
+}) => {
+  await register(page);
+  await addTask(page, "許可プロトコルの確認");
+  await page.getByText("許可プロトコルの確認").click();
+  await expect(
+    page.getByRole("heading", { name: "タスクの詳細" })
+  ).toBeVisible();
+
+  const memo = page.getByRole("textbox", { name: "メモ" });
+  await memo.click();
+  await memo.pressSequentially(
+    "http://example.com と mailto:test@example.com はリンクにならない ",
+    { delay: 30 }
+  );
+
+  await page.getByRole("button", { name: "保存" }).click();
+  await expect(
+    page.getByRole("heading", { name: "タスクの詳細" })
+  ).toBeHidden();
+
+  // 再度開いても、httpやmailtoのURLはリンクとして表示されない(テキストのみ)
+  await page.getByText("許可プロトコルの確認").click();
+  const memoAfterReopen = page.getByRole("textbox", { name: "メモ" });
+  await expect(memoAfterReopen).toContainText("http://example.com");
+  await expect(memoAfterReopen).toContainText("mailto:test@example.com");
+  await expect(memoAfterReopen.locator("a")).toHaveCount(0);
+});
+
 test("プレーンテキストのみのメモは、これまで通り表示できる(既存データとの互換性)", async ({
   page,
 }) => {
