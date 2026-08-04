@@ -160,6 +160,32 @@ describe("serializeTickTickCsv", () => {
     expect(lines.find((l) => l.startsWith("task,低"))).toContain(",1,");
   });
 
+  it("数式トリガー文字(=+-@)で始まるタイトル/メモ/セクション名にはアポストロフィを付けて書き出す(CSVインジェクション対策)", () => {
+    const csv = serializeTickTickCsv([
+      makeTask({ title: "=SUM(A1:A9)", note: "@メンション", sectionName: "+集計" }),
+    ]);
+    expect(csv).toContain("'=SUM(A1:A9)");
+    expect(csv).toContain("'@メンション");
+    expect(csv).toContain("'+集計");
+  });
+
+  it("数式トリガー文字で始まらない通常のタイトルにはアポストロフィを付けない", () => {
+    const csv = serializeTickTickCsv([makeTask({ title: "普通のタスク" })]);
+    expect(csv).not.toContain("'普通のタスク");
+    expect(csv).toContain(",普通のタスク,");
+  });
+
+  it("書き出したCSVを再度parseTickTickCsvで読み込むと、数式トリガー文字で始まるタイトルもエスケープ用アポストロフィ無しで復元される", () => {
+    const tasks: ExportTask[] = [
+      makeTask({ title: "=1+1", note: "-メモ", sectionName: "@セクション" }),
+    ];
+    const csv = serializeTickTickCsv(tasks);
+    const reparsed = parseTickTickCsv(csv);
+    expect(reparsed.tasks[0].title).toBe("=1+1");
+    expect(reparsed.tasks[0].note).toBe("-メモ");
+    expect(reparsed.tasks[0].sectionName).toBe("@セクション");
+  });
+
   it("書き出したCSVを再度parseTickTickCsvで読み込むと、タイトル・メモ・セクションが往復する", () => {
     const tasks: ExportTask[] = [
       makeTask({ title: "直下", note: "メモ" }),

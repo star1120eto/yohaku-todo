@@ -68,6 +68,23 @@ function toPriority(v: string): Priority {
   return PRIORITY_FROM_TICKTICK[v.trim()] ?? 0;
 }
 
+// CSVを開いたスプレッドシートアプリ(Excel/Google Sheets)が数式として解釈してしまう
+// 先頭文字。ワークスペースは複数人で共有されるため、あるメンバーが入力したタスク名を
+// 別のメンバーがCSVエクスポートして開く、という「別ユーザーの入力→自分のアプリで実行」
+// という経路が成立し得る(CSVインジェクション対策)。
+const FORMULA_TRIGGER = /^[=+\-@\t\r]/;
+
+function escapeFormula(value: string): string {
+  return FORMULA_TRIGGER.test(value) ? `'${value}` : value;
+}
+
+// escapeFormula の逆変換。よはく自身が書き出したCSVを、よはく自身で再取込みする際に
+// エスケープ用アポストロフィがタイトルへ残留しないようにする
+// (外部のCSVを取り込む場合、先頭アポストロフィがそのまま入っていても実害はない)。
+function unescapeFormula(value: string): string {
+  return value[0] === "'" && FORMULA_TRIGGER.test(value.slice(1)) ? value.slice(1) : value;
+}
+
 // "[表示名](https://example.com)" 単体だけの内容を、タイトルとURLに分解する。
 // ブックマーク用のリストをMarkdownリンクとして書き出すサービスからの取り込みを想定している。
 const MARKDOWN_LINK = /^\[(.+)\]\((https?:\/\/[^\s)]+)\)$/;
@@ -107,15 +124,15 @@ export function parseTickTickCsv(text: string): ImportPlan {
     if (type === "TYPE" || type === "meta") continue;
 
     if (type === "section") {
-      currentSection = (row[COL.CONTENT] ?? "").trim() || "セクション";
+      currentSection = unescapeFormula((row[COL.CONTENT] ?? "").trim()) || "セクション";
       if (!sections.includes(currentSection)) sections.push(currentSection);
       continue;
     }
     if (type !== "task") continue;
 
-    const { title, url } = splitTitleAndUrl((row[COL.CONTENT] ?? "").trim());
+    const { title, url } = splitTitleAndUrl(unescapeFormula((row[COL.CONTENT] ?? "").trim()));
     if (!title) continue;
-    const description = (row[COL.DESCRIPTION] ?? "").trim();
+    const description = unescapeFormula((row[COL.DESCRIPTION] ?? "").trim());
     const note = [description, url].filter(Boolean).join("\n");
 
     tasks.push({
@@ -154,8 +171,8 @@ function taskRow(t: ExportTask): string[] {
 
   const row = EMPTY_ROW();
   row[COL.TYPE] = "task";
-  row[COL.CONTENT] = content;
-  row[COL.DESCRIPTION] = description;
+  row[COL.CONTENT] = escapeFormula(content);
+  row[COL.DESCRIPTION] = escapeFormula(description);
   row[COL.PRIORITY] = PRIORITY_TO_TICKTICK[t.priority];
   row[COL.INDENT] = String(t.depth + 1);
   row[COL.DATE] = t.dueAt ?? "";
@@ -184,7 +201,7 @@ export function serializeTickTickCsv(tasks: ExportTask[]): string {
   for (const name of sectionNames) {
     const section = EMPTY_ROW();
     section[COL.TYPE] = "section";
-    section[COL.CONTENT] = name;
+    section[COL.CONTENT] = escapeFormula(name);
     rows.push(section);
     for (const t of tasks.filter((x) => x.sectionName === name)) rows.push(taskRow(t));
     rows.push(EMPTY_ROW());
