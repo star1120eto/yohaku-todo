@@ -5,6 +5,7 @@ import type { Folder, SavedFilter, Template } from "@/lib/types";
 import type { ResolvedFavorite, WorkspaceWithMembers } from "@/hooks/useData";
 import {
   DescriptionIcon,
+  DownloadIcon,
   EditIcon,
   FolderIcon,
   ICON_SIZE,
@@ -12,6 +13,7 @@ import {
   LockIcon,
   SearchIcon,
   StarIcon,
+  UploadIcon,
 } from "./icons";
 
 export type Filter =
@@ -268,10 +270,11 @@ export default function Sidebar({
           <span className="flex gap-2">
             <button
               onClick={() => importInputRef.current?.click()}
-              className="hover:text-ink"
+              className="text-ink-faint hover:text-ink"
               title="CSVをインポート"
+              aria-label="CSVをインポート"
             >
-              📥
+              <UploadIcon size={ICON_SIZE.md} />
             </button>
             <button onClick={() => setAddingFolder(true)} className="hover:text-ink" title="フォルダを追加">＋</button>
           </span>
@@ -303,8 +306,9 @@ export default function Sidebar({
                       onClick={() => onExportFolderCsv(f.id)}
                       className="px-1.5 text-ink-faint hover:text-ink opacity-0 group-hover:opacity-100 transition-opacity"
                       title="CSVでエクスポート"
+                      aria-label="CSVでエクスポート"
                     >
-                      📤
+                      <DownloadIcon size={ICON_SIZE.md} />
                     </button>
                     <button
                       onClick={() => onSaveFolderAsTemplate(f.id, f.name)}

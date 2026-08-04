@@ -35,6 +35,17 @@ test("タスクを追加すると一覧に表示される", async ({ page }) => 
   await expect(page.getByText("まだタスクがありません。")).toBeHidden();
 });
 
+test("Enterキーだけでなく、追加ボタン(+)のクリックでもタスクを追加できる", async ({
+  page,
+}) => {
+  await register(page);
+  const input = page.getByPlaceholder(/タスクを追加/);
+  await input.fill("パンを買う");
+  await page.getByRole("button", { name: "タスクを追加" }).click();
+  await expect(page.getByText("パンを買う")).toBeVisible();
+  await expect(input).toHaveValue("");
+});
+
 test("タイトルの自動解析プレビューが表示され、解析結果で保存される", async ({
   page,
 }) => {

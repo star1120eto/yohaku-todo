@@ -38,7 +38,14 @@ export default function Composer({
   return (
     <form onSubmit={submit} className="mb-8">
       <div className="flex items-center gap-3 rounded-xl border border-line bg-card px-4 py-3 shadow-soft focus-within:border-accent/50 transition-colors">
-        <AddIcon size={ICON_SIZE.xl} className="text-ink-faint shrink-0" />
+        <button
+          type="submit"
+          disabled={!value.trim() || busy}
+          aria-label="タスクを追加"
+          className="shrink-0 text-ink-faint hover:text-ink disabled:hover:text-ink-faint transition-colors disabled:cursor-default"
+        >
+          <AddIcon size={ICON_SIZE.xl} />
+        </button>
         <input
           className="flex-1 bg-transparent text-sm placeholder:text-ink-faint"
           placeholder={`タスクを追加（例: 企画書を出す 明日 15:00 ${p.tag}仕事 ${p.priority}高 ${p.folder}案件A）`}
