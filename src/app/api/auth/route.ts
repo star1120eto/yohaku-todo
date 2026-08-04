@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { currentUser, publicUser } from "@/lib/auth";
+import { UID_COOKIE, currentUser, destroySession, publicUser } from "@/lib/auth";
 
 export async function GET() {
   const user = await currentUser();
@@ -8,6 +8,8 @@ export async function GET() {
 
 export async function DELETE() {
   const store = await cookies();
-  store.delete("yohaku_uid");
+  const token = store.get(UID_COOKIE)?.value;
+  if (token) await destroySession(token);
+  store.delete(UID_COOKIE);
   return Response.json({ ok: true });
 }

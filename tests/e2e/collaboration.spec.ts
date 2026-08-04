@@ -131,4 +131,21 @@ test.describe("コメント・添付ファイル", () => {
 
     await context2.close();
   });
+
+  test("SVGなどHTML類似形式の添付ファイルは拒否される(Stored XSS対策)", async ({ page }) => {
+    await register(page);
+    await addTask(page, "デザイン確認");
+    await openTask(page, "デザイン確認");
+    const dialog = page.getByRole("dialog", { name: "タスクの詳細" });
+
+    await dialog.locator('input[type="file"]').setInputFiles({
+      name: "logo.svg",
+      mimeType: "image/svg+xml",
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
+    });
+    await dialog.getByPlaceholder(/コメントを入力/).fill("ロゴです");
+    await dialog.getByRole("button", { name: "送信" }).click();
+
+    await expect(dialog.getByText("対応していないファイル形式です: logo.svg")).toBeVisible();
+  });
 });
