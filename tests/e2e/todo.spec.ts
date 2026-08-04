@@ -20,6 +20,12 @@ async function addTask(page: Page, raw: string) {
   await input.press("Enter");
 }
 
+test("本文の文字が細すぎない(既定フォントの太さがRegular以上)", async ({ page }) => {
+  await register(page);
+  const weight = await page.evaluate(() => getComputedStyle(document.body).fontWeight);
+  expect(Number(weight)).toBeGreaterThanOrEqual(400);
+});
+
 test("新規登録するとアプリに入り、空状態が表示される", async ({ page }) => {
   await register(page);
   await expect(page.getByText("まだタスクがありません。")).toBeVisible();
