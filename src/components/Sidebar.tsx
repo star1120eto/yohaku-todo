@@ -99,6 +99,7 @@ export default function Sidebar({
   isFavorite,
   onToggleFavorite,
   onSelectFavorite,
+  onReorderFavorites,
   templates,
   onSaveFolderAsTemplate,
   onApplyTemplate,
@@ -130,6 +131,7 @@ export default function Sidebar({
   isFavorite: (type: "folder" | "tag" | "filter", ref: string) => boolean;
   onToggleFavorite: (type: "folder" | "tag" | "filter", ref: string) => void;
   onSelectFavorite: (f: ResolvedFavorite) => void;
+  onReorderFavorites: (ordered: ResolvedFavorite[]) => void;
   templates: Template[];
   onSaveFolderAsTemplate: (folderId: string, folderName: string) => void;
   onApplyTemplate: (template: Template) => void;
@@ -141,7 +143,21 @@ export default function Sidebar({
   const [newFolder, setNewFolder] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
   const [addingFolder, setAddingFolder] = useState(false);
+  const [draggingFavorite, setDraggingFavorite] = useState<string | null>(null);
   const current = workspaces.find((w) => w.id === currentWorkspaceId);
+
+  const favoriteKeyOf = (f: ResolvedFavorite) => `${f.type}:${f.ref}`;
+
+  const moveFavorite = (draggedKey: string, targetKey: string) => {
+    if (draggedKey === targetKey) return;
+    const fromIndex = favorites.findIndex((f) => favoriteKeyOf(f) === draggedKey);
+    const toIndex = favorites.findIndex((f) => favoriteKeyOf(f) === targetKey);
+    if (fromIndex === -1 || toIndex === -1) return;
+    const next = [...favorites];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    onReorderFavorites(next);
+  };
 
   return (
     <div className="flex flex-col h-full">
@@ -151,8 +167,9 @@ export default function Sidebar({
         {favorites.length > 0 && (
           <div className="mb-4" data-testid="favorites">
             <div className="text-[11px] text-ink-faint px-3 pb-1.5">お気に入り</div>
-            <ul className="space-y-0.5">
+            <ul className="space-y-0.5" data-testid="favorites-list">
               {favorites.map((f) => {
+                const key = favoriteKeyOf(f);
                 const active =
                   (f.type === "folder" &&
                     filter.type === "folder" &&
@@ -161,7 +178,21 @@ export default function Sidebar({
                   (f.type === "tag" && filter.type === "tag" && filter.tag === f.ref) ||
                   (f.type === "filter" && filter.type === "saved" && filter.filterId === f.ref);
                 return (
-                  <li key={`${f.type}:${f.ref}`}>
+                  <li
+                    key={key}
+                    draggable
+                    onDragStart={() => setDraggingFavorite(key)}
+                    onDragEnd={() => setDraggingFavorite(null)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      if (draggingFavorite) moveFavorite(draggingFavorite, key);
+                      setDraggingFavorite(null);
+                    }}
+                    className={`cursor-grab active:cursor-grabbing ${
+                      draggingFavorite === key ? "opacity-40" : ""
+                    }`}
+                  >
                     <NavButton active={active} onClick={() => onSelectFavorite(f)}>
                       {f.type === "folder" ? (
                         <IconText icon={FolderIcon} size={ICON_SIZE.lg} truncate>

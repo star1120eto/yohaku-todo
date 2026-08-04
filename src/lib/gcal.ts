@@ -1,5 +1,6 @@
 import { readDb, updateDb } from "./db";
 import { encryptSecret, decryptSecret } from "./crypto";
+import { stripTags } from "./richTextConfig";
 import type { GoogleAccount, Task } from "./types";
 
 const CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
@@ -102,7 +103,7 @@ function eventBody(task: Task) {
     : null;
   return {
     summary: task.title,
-    description: task.note || undefined,
+    description: stripTags(task.note) || undefined,
     start: start ? { dateTime: start.toISOString() } : undefined,
     end: end ? { dateTime: end.toISOString() } : undefined,
     extendedProperties: { private: { yohakuTaskId: task.id } },

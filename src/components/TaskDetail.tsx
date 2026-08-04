@@ -6,6 +6,7 @@ import { WEEKDAY_JP, formatRelative, formatRepeat } from "@/lib/format";
 import { api } from "@/hooks/useData";
 import { Field, GhostButton, Modal, PrimaryButton, inputClass } from "./ui";
 import Calendar from "./Calendar";
+import { RichTextEditor, RichTextViewer } from "./RichTextEditor";
 import {
   ArrowUpwardIcon,
   AttachFileIcon,
@@ -344,11 +345,12 @@ export default function TaskDetail({
       )}
 
       <Field label="メモ">
-        <textarea
-          className={`${inputClass} min-h-[72px] resize-y`}
+        <RichTextEditor
           value={note}
-          onChange={(e) => setNote(e.target.value)}
+          onChange={setNote}
+          disabled={!canEdit}
           placeholder="補足があれば…"
+          aria-label="メモ"
         />
       </Field>
 
@@ -793,7 +795,7 @@ export default function TaskDetail({
                 )}
               </div>
               {c.body && (
-                <p className="text-sm text-ink pl-8 mt-0.5 whitespace-pre-wrap">{c.body}</p>
+                <RichTextViewer html={c.body} className="text-ink pl-8 mt-0.5" />
               )}
               {c.attachments.length > 0 && (
                 <div className="flex flex-wrap gap-2 pl-8 mt-1">
@@ -827,17 +829,13 @@ export default function TaskDetail({
           )}
         </ul>
         <div className="rounded-lg border border-line p-2">
-          <textarea
-            className="w-full bg-transparent text-sm resize-y min-h-[52px] placeholder:text-ink-faint"
-            placeholder="コメントを入力（Cmd/Ctrl+Enterで送信）"
+          <RichTextEditor
+            className="rte-bare"
             value={commentBody}
-            onChange={(e) => setCommentBody(e.target.value)}
-            onKeyDown={(e) => {
-              if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                e.preventDefault();
-                postComment();
-              }
-            }}
+            onChange={setCommentBody}
+            placeholder="コメントを入力（Cmd/Ctrl+Enterで送信）"
+            onModEnter={postComment}
+            aria-label="コメント"
           />
           {commentFiles.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-1.5">

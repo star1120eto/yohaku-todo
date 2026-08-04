@@ -4,6 +4,7 @@ import { logActivity } from "@/lib/activity";
 import { syncTaskToGoogle } from "@/lib/gcal";
 import { dispatchWebhooks } from "@/lib/webhook";
 import { backgroundTask } from "@/lib/runtime";
+import { sanitizeRichText } from "@/lib/richText.server";
 import type { Task } from "@/lib/types";
 
 // 外部連携用API。`Authorization: Bearer <トークン>` でのみ認証する(Cookieセッションは使わない)。
@@ -49,7 +50,7 @@ export async function POST(req: Request) {
       sectionId: null,
       parentId: null,
       title,
-      note: typeof body.note === "string" ? body.note : "",
+      note: typeof body.note === "string" ? sanitizeRichText(body.note) : "",
       completed: false,
       completedAt: null,
       priority: [0, 1, 2, 3].includes(body.priority) ? body.priority : 0,

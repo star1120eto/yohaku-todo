@@ -4,6 +4,7 @@ import { logActivity } from "@/lib/activity";
 import { notifyUserSlack } from "@/lib/slack";
 import { backgroundTask } from "@/lib/runtime";
 import { arrayBufferToBase64 } from "@/lib/base64";
+import { sanitizeRichText } from "@/lib/richText.server";
 import type { Attachment } from "@/lib/types";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -41,7 +42,8 @@ export async function POST(req: Request) {
   if (!form) return jsonError("リクエストの形式が正しくありません", 400);
 
   const taskId = String(form.get("taskId") ?? "");
-  const body = String(form.get("body") ?? "").trim().slice(0, 2000);
+  const rawBody = String(form.get("body") ?? "").trim().slice(0, 2000);
+  const body = sanitizeRichText(rawBody);
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
 
   if (!body && files.length === 0) {

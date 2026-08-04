@@ -86,3 +86,54 @@ select {
 .animate-fade-up {
   animation: fade-up 0.25s ease-out;
 }
+
+/* リッチテキスト(メモ・コメント)の表示/編集共通スタイル */
+.rte-content a {
+  color: rgb(var(--c-accent));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rte-content p {
+  margin: 0;
+}
+.rte-content p + p {
+  margin-top: 0.5em;
+}
+.rte-content ul,
+.rte-content ol {
+  margin: 0.25em 0 0.25em 1.25em;
+  padding: 0;
+}
+
+.rte-editor .tiptap {
+  min-height: 72px;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgb(var(--c-line));
+  background: rgb(var(--c-field));
+  color: rgb(var(--c-ink));
+  transition: border-color 0.15s ease;
+}
+.rte-editor .tiptap:focus {
+  outline: none;
+  border-color: rgb(var(--c-accent) / 0.6);
+}
+.rte-editor.rte-disabled .tiptap {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.rte-editor .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: rgb(var(--c-ink-faint));
+}
+
+/* コメント欄など枠なしで使う場合(親要素が枠を持つ) */
+.rte-editor.rte-bare .tiptap {
+  min-height: 52px;
+  padding: 0;
+  border: none;
+  background: transparent;
+}

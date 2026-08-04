@@ -5,6 +5,7 @@ import type { SavedFilter, Section, Task, Template } from "@/lib/types";
 import { DEFAULT_PREFIXES, favoriteKey } from "@/lib/types";
 import { parseTitle } from "@/lib/parse";
 import { matchesQuery } from "@/lib/format";
+import { stripTags } from "@/lib/richTextConfig";
 import { buildTaskTree, type TaskNode } from "@/lib/tree";
 import { parseQuery, matchTask } from "@/lib/filterQuery";
 import {
@@ -135,8 +136,10 @@ export default function App() {
   // "/" キーで検索を開く(入力欄フォーカス中は無効)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (target?.isContentEditable) return; // リッチテキストエディタ(メモ・コメント)入力中は無効
       if (e.key === "/") {
         e.preventDefault();
         openSearch();
@@ -261,7 +264,9 @@ export default function App() {
     } else if (filter.type === "tag") {
       list = list.filter((t) => t.tags.includes(filter.tag));
     } else if (filter.type === "search") {
-      list = list.filter((t) => matchesQuery([t.title, t.note, ...t.tags], filter.q));
+      list = list.filter((t) =>
+        matchesQuery([t.title, stripTags(t.note), ...t.tags], filter.q)
+      );
     } else if (filter.type === "mine") {
       list = list.filter((t) => t.assigneeId === user?.id);
     } else if (filter.type === "saved") {
@@ -571,6 +576,12 @@ export default function App() {
     mutateSettings();
   };
 
+  const reorderFavorites = async (ordered: ResolvedFavorite[]) => {
+    const next = ordered.map((f, i) => ({ type: f.type, ref: f.ref, order: i }));
+    await api("/api/settings", "PUT", { favorites: next });
+    mutateSettings();
+  };
+
   const selectFavorite = (f: ResolvedFavorite) => {
     if (f.type === "folder" && f.workspaceId) {
       if (f.workspaceId !== wsId) setWsId(f.workspaceId);
@@ -678,6 +689,7 @@ export default function App() {
           isFavorite={isFavorite}
           onToggleFavorite={toggleFavorite}
           onSelectFavorite={selectFavorite}
+          onReorderFavorites={reorderFavorites}
           templates={templates}
           onSaveFolderAsTemplate={saveFolderAsTemplate}
           onApplyTemplate={applyTemplate}
