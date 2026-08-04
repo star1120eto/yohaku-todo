@@ -1,13 +1,32 @@
 import { updateDb } from "./db";
 import type { Database, Task, WebhookEvent } from "./types";
 
+// "::ffff:127.0.0.1" (IPv4射影IPv6) から埋め込まれたIPv4部分を取り出す。
+// URLのhostname正規化では "::ffff:a.b.c.d" 形式・16進表記の "::ffff:7f00:1" 形式の
+// どちらにもなり得るため両方に対応する。該当しなければ null。
+function extractMappedIpv4(ip: string): string | null {
+  const dotted = ip.match(/^::ffff:(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})$/i);
+  if (dotted) return dotted[1];
+  const hex = ip.match(/^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/i);
+  if (hex) {
+    const hi = parseInt(hex[1], 16);
+    const lo = parseInt(hex[2], 16);
+    return `${(hi >> 8) & 0xff}.${hi & 0xff}.${(lo >> 8) & 0xff}.${lo & 0xff}`;
+  }
+  return null;
+}
+
 // プライベート/ループバックアドレス宛のWebhookは登録・送信のどちらも拒否する簡易SSRFガード。
 // (ドメイン名はDNS解決までは検証しないため、DNSリバインディングへの完全な防御ではない)
 function isPrivateIp(ip: string): boolean {
-  if (ip === "127.0.0.1" || ip === "::1") return true;
+  if (ip === "127.0.0.1" || ip === "::1" || ip === "0.0.0.0") return true;
+  // IPv4射影IPv6("::ffff:127.0.0.1" 等)は埋め込まれたIPv4アドレスとして判定し直す。
+  const mapped = extractMappedIpv4(ip);
+  if (mapped) return isPrivateIp(mapped);
   const v4 = ip.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (v4) {
     const [a, b] = v4.slice(1).map(Number);
+    if (a === 0) return true;
     if (a === 10) return true;
     if (a === 127) return true;
     if (a === 169 && b === 254) return true;
@@ -16,7 +35,11 @@ function isPrivateIp(ip: string): boolean {
     return false;
   }
   const lower = ip.toLowerCase();
-  return lower.startsWith("fc") || lower.startsWith("fd") || lower.startsWith("fe80");
+  if (lower.startsWith("fc") || lower.startsWith("fd")) return true;
+  // fe80::/10 (リンクローカル)は先頭16bitが 0xfe80〜0xfebf の範囲。
+  const firstGroup = parseInt(lower.split(":")[0] || "", 16);
+  if (firstGroup >= 0xfe80 && firstGroup <= 0xfebf) return true;
+  return false;
 }
 
 // ホスト名がIPアドレスの直書きかどうかの簡易判定(ホスト名に ":" は含まれないため)

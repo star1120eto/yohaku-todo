@@ -16,6 +16,12 @@ export interface User {
   createdAt: string;
 }
 
+export interface Session {
+  tokenHash: string; // sha256(セッショントークン)。生トークンはCookieのみに保持する
+  userId: string;
+  createdAt: string;
+}
+
 export type MemberRole = "editor" | "viewer";
 
 export interface Workspace {
@@ -272,6 +278,7 @@ export const PRIORITY_LABELS: Record<Priority, string> = {
 
 export interface Database {
   users: User[];
+  sessions: Session[];
   workspaces: Workspace[];
   folders: Folder[];
   sections: Section[];

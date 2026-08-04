@@ -105,6 +105,26 @@ describe("isSafeWebhookUrl", () => {
     expect(isSafeWebhookUrl("http://[::1]/hook")).toBe(false);
   });
 
+  it("IPv4射影IPv6アドレス(::ffff:a.b.c.d)経由でのループバック/リンクローカル到達は拒否する", () => {
+    // URLのhostname正規化は "::ffff:127.0.0.1"(ドット表記)にも
+    // "::ffff:7f00:1"(16進表記)にもなり得るため、両方の書き方を直接検証する。
+    expect(isSafeWebhookUrl("http://[::ffff:127.0.0.1]/hook")).toBe(false);
+    expect(isSafeWebhookUrl("http://[::ffff:7f00:1]/hook")).toBe(false);
+    expect(isSafeWebhookUrl("http://[::ffff:169.254.169.254]/hook")).toBe(false);
+    expect(isSafeWebhookUrl("http://[::ffff:a9fe:a9fe]/hook")).toBe(false);
+    expect(isSafeWebhookUrl("http://[::ffff:10.0.0.5]/hook")).toBe(false);
+  });
+
+  it("fe80::/10 の範囲全体(fe80〜febf)をリンクローカルとして拒否する", () => {
+    expect(isSafeWebhookUrl("http://[fe80::1]/hook")).toBe(false);
+    expect(isSafeWebhookUrl("http://[febf::1]/hook")).toBe(false);
+    expect(isSafeWebhookUrl("http://[fec0::1]/hook")).toBe(true); // fe80::/10 の範囲外
+  });
+
+  it("0.0.0.0 は拒否する", () => {
+    expect(isSafeWebhookUrl("http://0.0.0.0/hook")).toBe(false);
+  });
+
   it("172.x はプライベート範囲(16-31)の境界外なら許可する", () => {
     expect(isSafeWebhookUrl("http://172.15.255.255/hook")).toBe(true);
     expect(isSafeWebhookUrl("http://172.32.0.0/hook")).toBe(true);

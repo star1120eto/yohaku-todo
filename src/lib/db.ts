@@ -9,6 +9,7 @@ import type { Database } from "./types";
 
 const EMPTY_DB: Database = {
   users: [],
+  sessions: [],
   workspaces: [],
   folders: [],
   sections: [],

@@ -1,5 +1,5 @@
 import { readDb, updateDb, newId, randomHex } from "@/lib/db";
-import { currentUser, hashApiToken, jsonError } from "@/lib/auth";
+import { currentUser, sha256Hex, jsonError } from "@/lib/auth";
 import type { ApiToken } from "@/lib/types";
 
 export async function GET() {
@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     id: newId(),
     userId: user.id,
     name,
-    tokenHash: await hashApiToken(plain),
+    tokenHash: await sha256Hex(plain),
     tokenPreview: `${plain.slice(0, 8)}...`,
     createdAt: new Date().toISOString(),
     lastUsedAt: null,

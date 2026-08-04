@@ -53,6 +53,7 @@ describe("readDb", () => {
     const data = await db.readDb();
     expect(data).toEqual({
       users: [],
+      sessions: [],
       workspaces: [],
       folders: [],
       sections: [],

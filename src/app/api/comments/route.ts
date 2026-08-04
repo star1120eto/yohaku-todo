@@ -8,7 +8,10 @@ import type { Attachment } from "@/lib/types";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
 const MAX_FILES = 3;
-const ALLOWED_MIME = /^(image\/|application\/pdf$|text\/plain$)/;
+// image/svg+xml 等のHTML類似形式は、ブラウザがトップレベル遷移で開いた際に
+// 埋め込みスクリプトを実行できてしまう(Stored XSS)ため、明示的に許可した
+// ラスター画像形式のみを許可する。
+const ALLOWED_MIME = /^(image\/(png|jpeg|gif|webp)$|application\/pdf$|text\/plain$)/;
 
 export async function GET(req: Request) {
   const user = await currentUser();

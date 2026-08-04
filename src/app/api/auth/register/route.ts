@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { updateDb, newId, newInviteCode } from "@/lib/db";
-import { UID_COOKIE, publicUser } from "@/lib/auth";
+import { UID_COOKIE, createSession, publicUser } from "@/lib/auth";
 import { hashPassword, isValidEmail } from "@/lib/password";
 import { isEmailAllowed } from "@/lib/allowlist";
 import { defaultSettings, type User } from "@/lib/types";
@@ -62,8 +62,9 @@ export async function POST(req: Request) {
     );
   }
 
+  const token = await createSession(result.user.id);
   const store = await cookies();
-  store.set(UID_COOKIE, result.user.id, {
+  store.set(UID_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",
     maxAge: 60 * 60 * 24 * 365,
