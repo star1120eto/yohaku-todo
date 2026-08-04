@@ -2,10 +2,11 @@ import type { Metadata, Viewport } from "next";
 import { Noto_Sans_JP, Zen_Old_Mincho } from "next/font/google";
 import "./globals.css";
 
-// 本文: 源ノ角ゴシック JP(= Noto Sans JP)。既定は Light(300)。
+// 本文: 源ノ角ゴシック JP(= Noto Sans JP)。既定は Regular(400)。
+// (Light(300)は特にダークモードで文字が細く見づらいとの指摘を受け、400に変更した)
 // ロゴの欧文ワードマークのみ落ち着いた明朝を使用。
 const sans = Noto_Sans_JP({
-  weight: ["300", "400", "500", "700"],
+  weight: ["400", "500", "700"],
   subsets: ["latin"],
   display: "swap",
   variable: "--font-sans",
@@ -58,7 +59,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className="font-sans font-light text-[15px] leading-relaxed">
+      <body className="font-sans font-normal text-[15px] leading-relaxed">
         {children}
       </body>
     </html>
