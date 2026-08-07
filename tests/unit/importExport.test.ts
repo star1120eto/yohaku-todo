@@ -148,6 +148,24 @@ describe("serializeTickTickCsv", () => {
     expect(csv).toContain("普通のメモ,ただのメモ");
   });
 
+  it("メモがリッチテキスト(HTML)として保存されていても、タグを除いたプレーンテキストで書き出す", () => {
+    const csv = serializeTickTickCsv([
+      makeTask({ title: "普通のメモ", note: "<p><strong>大事</strong>な用件</p>" }),
+    ]);
+    expect(csv).toContain("普通のメモ,大事 な用件");
+    expect(csv).not.toContain("<strong>");
+  });
+
+  it("メモがリッチテキストで保存された裸のURLでも、Markdownリンクとして書き出す(取り込みと対称)", () => {
+    const csv = serializeTickTickCsv([
+      makeTask({
+        title: "記事",
+        note: '<p><a href="https://example.com/x">https://example.com/x</a></p>',
+      }),
+    ]);
+    expect(csv).toContain("[記事](https://example.com/x)");
+  });
+
   it("優先度はよはくの0〜3からTickTickの0/1/3/5へ変換される", () => {
     const csv = serializeTickTickCsv([
       makeTask({ title: "高", priority: 3 }),
