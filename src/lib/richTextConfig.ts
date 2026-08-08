@@ -20,9 +20,22 @@ export const RICH_TEXT_ALLOWED_ATTR = ["href", "target", "rel"] as const;
 /** リンクとして許可するプロトコル。https のみ(http/mailto/tel/javascript: 等は弾く)。 */
 export const RICH_TEXT_ALLOWED_URI_REGEXP = /^https:/i;
 
-/** 文字列が(プレーンテキストではなく)HTML タグを含んでいそうかどうか。 */
+// このエディタ/サニタイザーが実際に生成しうるタグ名だけを対象にする(下の looksLikeHtml 参照)。
+const LOOKS_LIKE_HTML_RE = new RegExp(
+  `<\\/?(?:${RICH_TEXT_ALLOWED_TAGS.join("|")})(?:[\\s/>]|$)`,
+  "i"
+);
+
+/**
+ * 文字列が(プレーンテキストではなく)HTML タグを含んでいそうかどうか。
+ * 既存の保存済みプレーンテキストが「<script> の使い方について」のような
+ * タグに似た語句をたまたま含んでいるだけで HTML 扱いされ、エスケープされずに
+ * そのままパーサーへ渡ってしまう(内容が消えたり壊れたりする)ことを防ぐため、
+ * 任意のタグ名ではなく、このエディタ/サニタイザーが実際に使う既知のタグ名
+ * (RICH_TEXT_ALLOWED_TAGS)にマッチする場合のみ HTML とみなす。
+ */
 export function looksLikeHtml(raw: string): boolean {
-  return /<[a-z][\s\S]*>/i.test(raw);
+  return LOOKS_LIKE_HTML_RE.test(raw);
 }
 
 function escapeHtml(text: string): string {

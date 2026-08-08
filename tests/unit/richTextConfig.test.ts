@@ -18,6 +18,14 @@ describe("looksLikeHtml", () => {
     expect(looksLikeHtml("1 < 2 という不等式")).toBe(false);
     expect(looksLikeHtml("")).toBe(false);
   });
+
+  it("既存の保存済みプレーンテキストがタグに似た語句を含んでいても誤検出しない", () => {
+    // このエディタが実際には使わないタグ名(script/div/table等)を含む既存のプレーン
+    // テキストを、HTML として誤って扱ってしまう(内容が消えたり壊れたりする)ことを防ぐ。
+    expect(looksLikeHtml("<script>の使い方について")).toBe(false);
+    expect(looksLikeHtml("<div>タグと<span>タグの違い")).toBe(false);
+    expect(looksLikeHtml("値段は<table>で管理している")).toBe(false);
+  });
 });
 
 describe("plainTextToHtml", () => {
