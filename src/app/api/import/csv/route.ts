@@ -2,6 +2,7 @@ import { updateDb, newId } from "@/lib/db";
 import { currentUser, canEdit, isMember, jsonError } from "@/lib/auth";
 import { logActivity } from "@/lib/activity";
 import { parseTickTickCsv } from "@/lib/importExport";
+import { sanitizeRichText } from "@/lib/richText.server";
 import type { Folder, Section, Task } from "@/lib/types";
 
 // TickTick等からエクスポートしたCSVを取り込み、新規フォルダとして展開する。
@@ -84,7 +85,7 @@ export async function POST(req: Request) {
         sectionId,
         parentId,
         title: item.title,
-        note: item.note,
+        note: sanitizeRichText(item.note),
         completed: false,
         completedAt: null,
         priority: item.priority,

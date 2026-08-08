@@ -6,6 +6,7 @@ import { logActivity } from "@/lib/activity";
 import { syncTaskToGoogle } from "@/lib/gcal";
 import { dispatchWebhooks } from "@/lib/webhook";
 import { backgroundTask } from "@/lib/runtime";
+import { sanitizeRichText } from "@/lib/richText.server";
 import type { Task } from "@/lib/types";
 
 function cleanDuration(v: unknown): number | null {
@@ -59,7 +60,7 @@ export async function PATCH(req: Request, { params }: Params) {
     if (typeof body.title === "string" && body.title.trim()) {
       t.title = body.title.trim();
     }
-    if (typeof body.note === "string") t.note = body.note;
+    if (typeof body.note === "string") t.note = sanitizeRichText(body.note);
     if ([0, 1, 2, 3].includes(body.priority)) t.priority = body.priority;
     if (Array.isArray(body.tags)) t.tags = body.tags.map(String);
     if ("folderId" in body) {

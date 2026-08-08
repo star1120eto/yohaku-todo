@@ -23,6 +23,12 @@
     "cf:d1:migrate:remote": "wrangler d1 execute yohaku-todo-db --remote --file=./schema.sql"
   },
   "dependencies": {
+    "@tiptap/extension-placeholder": "^3.29.2",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
+    "dompurify": "^3.4.13",
+    "linkedom": "^0.18.13",
     "next": "^15.3.3",
     "papaparse": "^5.5.4",
     "react": "^19.1.0",

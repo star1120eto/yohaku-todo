@@ -4,6 +4,7 @@ import { logActivity } from "@/lib/activity";
 import { notifyUserSlack } from "@/lib/slack";
 import { backgroundTask } from "@/lib/runtime";
 import { arrayBufferToBase64 } from "@/lib/base64";
+import { sanitizeRichText, stripTags } from "@/lib/richText.server";
 import type { Attachment } from "@/lib/types";
 
 const MAX_FILE_BYTES = 5 * 1024 * 1024;
@@ -41,11 +42,18 @@ export async function POST(req: Request) {
   if (!form) return jsonError("リクエストの形式が正しくありません", 400);
 
   const taskId = String(form.get("taskId") ?? "");
-  const body = String(form.get("body") ?? "").trim().slice(0, 2000);
+  // 本文は HTML(リッチテキスト)なので、生の文字数で slice すると
+  // タグや href の途中で切れて壊れたマークアップになりうる。
+  // サニタイズ後にテキストとしての文字数で上限を判定する。
+  const rawBody = String(form.get("body") ?? "").trim();
+  const body = sanitizeRichText(rawBody);
   const files = form.getAll("files").filter((f): f is File => f instanceof File);
 
   if (!body && files.length === 0) {
     return jsonError("本文か添付ファイルを入力してください", 400);
+  }
+  if (stripTags(body).length > 2000) {
+    return jsonError("コメントは2000文字以内で入力してください", 400);
   }
   if (files.length > MAX_FILES) {
     return jsonError(`添付ファイルは${MAX_FILES}件までです`, 400);

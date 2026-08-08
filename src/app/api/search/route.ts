@@ -1,6 +1,7 @@
 import { readDb } from "@/lib/db";
 import { currentUser, isMember, jsonError } from "@/lib/auth";
 import { matchesQuery } from "@/lib/format";
+import { stripTags } from "@/lib/richTextConfig";
 import type { Task } from "@/lib/types";
 
 // 自分がメンバーの全ワークスペースを横断してタスクを検索する。
@@ -17,7 +18,7 @@ export async function GET(req: Request) {
   const results: (Task & { workspaceName: string })[] = [];
   for (const t of db.tasks) {
     if (!wsNameById.has(t.workspaceId)) continue;
-    if (!matchesQuery([t.title, t.note, ...t.tags], q)) continue;
+    if (!matchesQuery([t.title, stripTags(t.note), ...t.tags], q)) continue;
     results.push({ ...t, workspaceName: wsNameById.get(t.workspaceId)! });
     if (results.length >= 100) break;
   }
