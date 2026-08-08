@@ -62,6 +62,10 @@ export function RichTextEditor({
       attributes: {
         role: "textbox",
         "aria-multiline": "true",
+        // contenteditable な要素に標準の placeholder 属性は無いが、テストツール
+        // (Playwright の getByPlaceholder 等)からも textarea 相当に見つけられるよう付与する。
+        // 表示上のプレースホルダーは Placeholder 拡張(data-placeholder の::before)が担う。
+        ...(placeholder ? { placeholder } : {}),
         ...(ariaLabel ? { "aria-label": ariaLabel } : {}),
       },
       handleKeyDown: (_view, event) => {

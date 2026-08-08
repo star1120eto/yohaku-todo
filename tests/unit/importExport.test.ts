@@ -152,7 +152,7 @@ describe("serializeTickTickCsv", () => {
     const csv = serializeTickTickCsv([
       makeTask({ title: "普通のメモ", note: "<p><strong>大事</strong>な用件</p>" }),
     ]);
-    expect(csv).toContain("普通のメモ,大事 な用件");
+    expect(csv).toContain("普通のメモ,大事な用件");
     expect(csv).not.toContain("<strong>");
   });
 
@@ -164,6 +164,16 @@ describe("serializeTickTickCsv", () => {
       }),
     ]);
     expect(csv).toContain("[記事](https://example.com/x)");
+  });
+
+  it("複数段落のリッチテキストのメモは、段落の改行を保ったままDESCRIPTION列に書き出す", () => {
+    const csv = serializeTickTickCsv([
+      makeTask({
+        title: "記事2",
+        note: "<p>メモ書き</p><p>https://example.com/articles/2</p>",
+      }),
+    ]);
+    expect(csv).toContain("メモ書き\nhttps://example.com/articles/2");
   });
 
   it("優先度はよはくの0〜3からTickTickの0/1/3/5へ変換される", () => {

@@ -1,5 +1,5 @@
 import { parseCsv, toCsv } from "./csv";
-import { stripTags } from "./richTextConfig";
+import { htmlToTextLines } from "./richTextConfig";
 import type { Priority } from "./types";
 
 // TickTick の「リストをCSVでエクスポート」形式の列順。
@@ -165,8 +165,9 @@ export interface ExportTask {
 const EMPTY_ROW = () => Array(TICKTICK_HEADER.length).fill("");
 
 function taskRow(t: ExportTask): string[] {
-  // メモはリッチテキスト(HTML)として保存されているため、CSVへはプレーンテキストとして書き出す。
-  const noteText = stripTags(t.note);
+  // メモはリッチテキスト(HTML)として保存されているため、CSVへはプレーンテキストとして書き出す
+  // (段落の改行は保ったまま)。
+  const noteText = htmlToTextLines(t.note);
   // メモが「1行だけの裸のURL」ならMarkdownリンクとして書き出し、取り込み側と対称にする。
   const bareUrl = /^https?:\/\/\S+$/.test(noteText) ? noteText : null;
   const content = bareUrl ? `[${t.title}](${bareUrl})` : t.title;

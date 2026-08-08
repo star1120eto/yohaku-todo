@@ -103,6 +103,9 @@ test("プレーンテキストのみのメモは、これまで通り表示で�
   await memo.click();
   await memo.pressSequentially("URLを含まない、ただのメモ");
   await page.getByRole("button", { name: "保存" }).click();
+  await expect(
+    page.getByRole("heading", { name: "タスクの詳細" })
+  ).toBeHidden();
 
   await page.getByText("普通のタスク").click();
   await expect(

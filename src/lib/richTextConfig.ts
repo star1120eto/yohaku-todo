@@ -59,22 +59,44 @@ export function normalizeRichText(raw: string): string {
   return looksLikeHtml(raw) ? raw : plainTextToHtml(raw);
 }
 
-/**
- * HTML からタグを取り除いたプレーンテキストを取り出す(検索・カレンダー連携など、
- * セキュリティ上重要ではない用途向けの簡易実装)。厳密な HTML パースは行わない。
- */
-export function stripTags(html: string): string {
-  if (!html) return "";
-  return html
-    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
+function decodeEntities(text: string): string {
+  return text
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
+    .replace(/&#39;/g, "'");
+}
+
+/**
+ * HTML からタグを取り除いたプレーンテキストを取り出す(検索・カレンダー連携など、
+ * セキュリティ上重要ではない用途向けの簡易実装)。厳密な HTML パースは行わない。
+ * 改行を含む空白はすべて1つの半角スペースに畳み込む(1行のテキストが欲しい用途向け)。
+ */
+export function stripTags(html: string): string {
+  if (!html) return "";
+  const noTags = html
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<[^>]+>/g, " ");
+  return decodeEntities(noTags).replace(/\s+/g, " ").trim();
+}
+
+/**
+ * HTML からタグを取り除いたプレーンテキストを取り出す(CSV連携など、段落の改行を
+ * 保ちたい用途向け)。`<p>` `<li>` `<div>` の終わりと `<br>` を改行として残す。
+ */
+export function htmlToTextLines(html: string): string {
+  if (!html) return "";
+  const withBreaks = html
+    .replace(/<(script|style)[^>]*>[\s\S]*?<\/\1>/gi, " ")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<\/(p|li|div)>/gi, "\n")
+    .replace(/<[^>]+>/g, "");
+  return decodeEntities(withBreaks)
+    .split("\n")
+    .map((line) => line.replace(/[^\S\n]+/g, " ").trim())
+    .join("\n")
     .trim();
 }
 

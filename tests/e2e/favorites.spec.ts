@@ -38,8 +38,9 @@ test("お気に入りをドラッグ&ドロップで並び替えられ、再読�
   await favoriteFolder(page, "個人");
 
   // 登録した順(仕事 → 個人)でお気に入りセクションに表示される
+  // (お気に入り登録はサーバーへの保存を伴う非同期処理のため、poll で安定するまで待つ)
   await expect(page.getByTestId("favorites-list")).toBeVisible();
-  expect(await favoriteLabels(page)).toEqual(["仕事", "個人"]);
+  await expect.poll(() => favoriteLabels(page)).toEqual(["仕事", "個人"]);
 
   // 「個人」を「仕事」より上へドラッグして並び替える
   const favList = page.getByTestId("favorites-list");
@@ -52,5 +53,5 @@ test("お気に入りをドラッグ&ドロップで並び替えられ、再読�
   // リロードしても並び順(サーバーに保存された order)が保持される
   await page.reload();
   await expect(page.getByTestId("favorites-list")).toBeVisible();
-  expect(await favoriteLabels(page)).toEqual(["個人", "仕事"]);
+  await expect.poll(() => favoriteLabels(page)).toEqual(["個人", "仕事"]);
 });
